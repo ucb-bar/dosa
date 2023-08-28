@@ -1,0 +1,65 @@
+architecture:
+  version: 0.3
+
+  subtree:
+  - name: System
+    local:
+    - name: DRAM
+      class: DRAM
+      attributes:
+        # reduction_supported: true
+        instances: 1
+        word-bits: 8
+        block_size: 64
+        shared_bandwidth: 8 # TODO: set based on interface in our SoC setting
+
+    subtree:
+    - name: Chip
+      attributes:
+        technology: 40nm # TODO
+      local:
+      - name: ConvolutionBuffer 
+        class: SRAM
+        attributes:
+          # entries: 4096 # depth * width/8 - can be inferred
+          # depth: 512 # constant; docs say 4 KB ~ 32 KB per bank
+          # width: 64 # 8B for small, 64B for large
+          sizeKB: 128
+          # instances: 32 # 32 for small, 16 for large
+          instances: 1
+          read-bandwidth: 64
+          write-bandwidth: 64
+          meshX: 1
+          word-bits: 8
+          n_rd_ports: 2
+          n_wr_ports: 2
+          # n_banks: 16 # 2 ~ 32, but CACTI supports only up to 16... use instances instead?
+      - name: Accumulator
+        class: SRAM
+        attributes:
+          entries: 512 # constant?
+          depth: 32 # constant
+          width: 512 # 64B - constant
+          multiple_buffering: 2 # double size or no?
+          instances: 8
+          meshX: 8
+          word-bits: 32
+          n_rdwr_ports: 2
+      subtree:
+      - name: Lane[0..63] # Atomic-C=16~128, Atomic-K=4~16, but for nv_small C=8, so this is outdated info
+        local:
+        - name: Registers
+          class: SRAM
+          attributes:
+            depth: 1
+            width: 8
+            entries: 1
+            meshX: 8 # Atomic-C=8
+            word-bits: 8
+            n_rdwr_ports: 2
+            n_banks: 1
+        - name: MACC
+          class: intmac
+          attributes:
+            meshX: 8 # nv_small: Atomic-C=8, Atomic-K=8
+            word-bits: 8

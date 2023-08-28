@@ -1,0 +1,46 @@
+mapper:
+  algorithm: random
+  optimization-metrics:
+  - delay
+  live-status: False
+  num-threads: 10
+  timeout: 1000
+  search-size: 100
+  sync-interval: 0
+  log-suboptimal: True
+
+mapspace_constraints:
+  - target: Registers
+    type: bypass
+    bypass:
+    - Outputs
+    - Inputs
+    keep:
+    - Weights
+  - target: WeightFIFO
+    type: bypass
+    bypass:
+    - Inputs
+    - Outputs
+    keep:
+    - Weights
+  - target: Accumulator
+    type: bypass
+    bypass:
+    - Weights
+    - Inputs
+    keep:
+    - Outputs
+  - target: LocalBuffer
+    type: bypass
+    bypass:
+    - Weights
+    - Outputs
+    keep:
+    - Inputs
+  - target: DRAM
+    type: bypass
+    keep:
+    - Weights
+    - Inputs
+    - Outputs

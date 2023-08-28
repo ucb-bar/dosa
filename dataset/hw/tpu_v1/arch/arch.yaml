@@ -1,0 +1,74 @@
+architecture:
+  version: 0.3
+
+  subtree:
+  - name: System
+    local:
+    - name: DRAM
+      class: DRAM
+      attributes:
+        # reduction_supported: true
+        instances: 1
+        word-bits: 8
+        block_size: 64
+        shared_bandwidth: 8
+
+    subtree:
+    - name: Chip
+      attributes:
+        technology: 28nm
+      local:
+        - name: LocalBuffer
+          class: SRAM
+          attributes:
+            entries: 25165824 # 98304 * 256
+            depth: 98304
+            width: 2048 # 256 x 8b
+            instances: 1
+            meshX: 1
+            word-bits: 8
+            network-word-bits: 2048
+            n_rdwr_ports: 1
+            n_banks: 1
+        - name: Accumulator
+          class: SRAM
+          attributes:
+            entries: 2097152 # 4096 x 512
+            depth: 4096
+            width: 8192 # 512 x 32b
+            instances: 1
+            meshX: 1
+            word-bits: 32
+            n_rdwr_ports: 2
+            n_banks: 1
+        - name: WeightFIFO
+          class: SRAM
+          attributes:
+            entries: 1024 # 4 * 256
+            depth: 4
+            width: 2048 # 256 x 8b
+            instances: 1
+            meshX: 1
+            word-bits: 8
+            network-word-bits: 2048
+            n_rdwr_ports: 1
+            n_banks: 1
+      subtree:
+      - name: PE[0..65535]
+        local:
+        - name: Registers
+          class: SRAM
+          attributes:
+            depth: 1
+            width: 8
+            entries: 1
+            meshX: 256
+            word-bits: 8
+            n_rdwr_ports: 2
+            n_banks: 1
+        - name: MACC
+          class: intmac
+          attributes:
+            datawidth: 8
+            meshX: 256
+            word-bits: 8

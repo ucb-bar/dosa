@@ -1,0 +1,18 @@
+problem:
+  instance:
+    S: 128
+  shape:
+    data-spaces:
+    - name: Weights
+      projection:
+      - - - S
+    - name: Inputs
+      projection:
+      - - - S
+    - name: Outputs
+      projection:
+      - []
+      read-write: true
+    dimensions:
+    - S
+    name: reduction

@@ -1,0 +1,48 @@
+# Encoder
+self.pre_rnn = rnn(
+    rnn="lstm",
+    input_size=80,
+    hidden_size=1024,
+    num_layers=2,
+)
+self.post_rnn = rnn(
+    rnn="lstm",
+    input_size=2 * 1024,
+    hidden_size=1024,
+    num_layers=3,
+)
+
+# Predictor
+self.dec_rnn = rnn(
+    rnn="lstm",
+    input_size=320,
+    hidden_size=320,
+    num_layers=2,
+)
+
+# Joiner
+torch.nn.Linear(320 + 1024, 512)
+torch.nn.Linear(512, 28)
+
+##########################################
+RNN-T
+[rnnt]
+rnn_type = "lstm"
+encoder_n_hidden = 1024
+encoder_pre_rnn_layers = 2
+encoder_stack_time_factor = 2
+encoder_post_rnn_layers = 3
+pred_n_hidden = 320
+pred_rnn_layers = 2
+forget_gate_bias = 1.0
+joint_n_hidden = 512
+dropout=0.32
+
+features=80
+
+self.lstm = torch.nn.LSTM(
+input_size=input_size,
+hidden_size=hidden_size,
+num_layers=num_layers,
+dropout=dropout,
+)

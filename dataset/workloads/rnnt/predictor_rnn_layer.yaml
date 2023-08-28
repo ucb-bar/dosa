@@ -1,0 +1,18 @@
+# self.dec_rnn = rnn(
+#     rnn="lstm",
+#     input_size=320,
+#     hidden_size=320,
+#     num_layers=2,
+# )
+problem:
+  C: 640
+  Hdilation: 1
+  Hstride: 1
+  K: 320
+  N: 1
+  P: 1
+  Q: 1
+  R: 1
+  S: 1
+  Wdilation: 1
+  Wstride: 1

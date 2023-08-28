@@ -1,0 +1,13 @@
+problem:
+  shape: "dw-cnn-layer"
+  instance:
+    C: 512
+    Hdilation: 1
+    Hstride: 2
+    N: 1
+    P: 14
+    Q: 14
+    R: 3
+    S: 3
+    Wdilation: 1
+    Wstride: 2

@@ -1,0 +1,69 @@
+architecture:
+  version: 0.3
+
+  subtree:
+  - name: System
+    local:
+    - name: DRAM
+      class: DRAM
+      attributes:
+        # reduction_supported: true
+        instances: 1
+        word-bits: 8
+        block_size: 64
+        shared_bandwidth: 8
+
+    subtree:
+    - name: Chip
+      attributes:
+        technology: 40nm
+      local:
+      - name: Scratchpad 
+        class: SRAM
+        attributes:
+          entries: 131072
+          depth: 8192
+          width: 128
+          instances: 1
+          meshX: 1
+          word-bits: 8
+          n_rdwr_ports: 1
+          n_banks: 1 # 4
+          # read_bandwidth: 16
+          # write_bandwidth: 16
+          shared_bandwidth: 32
+      subtree:
+      - name: PECols[0..15]
+        local:
+        - name: Accumulator
+          class: SRAM
+          attributes:
+            entries: 512 # acc size / pe_dim = 8192/16
+            depth: 512
+            width: 32
+            instances: 16
+            word-bits: 32
+            network-word-bits: 16
+            n_rdwr_ports: 2
+            n_banks: 2
+            # read_bandwidth: 1
+            # write_bandwidth: 1
+            shared_bandwidth: 2
+        subtree:
+        - name: PERows[0..15]
+          local:
+          - name: Registers
+            class: SRAM
+            attributes:
+              depth: 1
+              width: 8
+              entries: 1
+              instances: 256
+              word-bits: 8
+              n_rdwr_ports: 2
+              n_banks: 1
+          - name: MACC
+            class: intmac
+            attributes:
+              datawidth: 8
+              word-bits: 8

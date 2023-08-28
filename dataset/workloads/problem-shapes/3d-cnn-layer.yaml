@@ -1,0 +1,39 @@
+shape:
+  name: "3d-CNN-Layer"
+  dimensions: [ R, S, T, P, Q, F, C, K, N ]
+  coefficients:
+  - name: Wstride
+    default: 1
+  - name: Hstride
+    default: 1
+  - name: Dstride
+    default: 1
+  - name: Wdilation
+    default: 1
+  - name: Hdilation
+    default: 1
+  - name: Ddilation
+    default: 1
+  data-spaces:
+  - name: Weights
+    projection:
+    - [ [C] ]
+    - [ [K] ]
+    - [ [R] ]
+    - [ [S] ]
+    - [ [T] ]
+  - name: Inputs
+    projection:
+    - [ [N] ]
+    - [ [C] ]
+    - [ [R, Wdilation], [P, Wstride] ] # SOP form: RWdilation + PWstride
+    - [ [S, Hdilation], [Q, Hstride] ] # SOP form: SHdilation + QHstride
+    - [ [T, Ddilation], [F, Dstride] ] # SOP form: TDdilation + FDstride
+  - name: Outputs
+    projection:
+    - [ [N] ]
+    - [ [K] ]
+    - [ [Q] ]
+    - [ [P] ]
+    - [ [F] ]
+  read-write: True

@@ -1,0 +1,72 @@
+'1_1_14_14_1024_256_1_1_1_1_1':
+  count: 5
+  name: _outputs_input.80
+'1_1_14_14_1024_512_1_1_1_1_1':
+  count: 1
+  name: _outputs_input.125
+'1_1_14_14_256_1024_1_1_1_1_1':
+  count: 6
+  name: _outputs_input.76
+'1_1_14_14_512_1024_1_2_2_1_1':
+  count: 1
+  name: _outputs_input.77
+'1_1_1_1_2048_1000_1_1_1_1_1':
+  count: 1
+  name: _outputs_3356
+'1_1_28_28_128_512_1_1_1_1_1':
+  count: 4
+  name: _outputs_input.39
+'1_1_28_28_256_512_1_2_2_1_1':
+  count: 1
+  name: _outputs_input.40
+'1_1_28_28_512_128_1_1_1_1_1':
+  count: 3
+  name: _outputs_input.43
+'1_1_28_28_512_256_1_1_1_1_1':
+  count: 1
+  name: _outputs_input.70
+'1_1_56_56_256_128_1_1_1_1_1':
+  count: 1
+  name: _outputs_input.33
+'1_1_56_56_256_64_1_1_1_1_1':
+  count: 2
+  name: _outputs_input.15
+'1_1_56_56_64_256_1_1_1_1_1':
+  count: 4
+  name: _outputs_input.11
+'1_1_56_56_64_64_1_1_1_1_1':
+  count: 1
+  name: _outputs_input.5
+'1_1_7_7_1024_2048_1_2_2_1_1':
+  count: 1
+  name: _outputs_input.132
+'1_1_7_7_2048_512_1_1_1_1_1':
+  count: 2
+  name: _outputs_input.135
+'1_1_7_7_512_2048_1_1_1_1_1':
+  count: 3
+  name: _outputs_input.131
+'3_3_14_14_256_256_1_1_1_1_1':
+  count: 5
+  name: _outputs_input.83
+'3_3_14_14_256_256_1_2_2_1_1':
+  count: 1
+  name: _outputs_input.73
+'3_3_28_28_128_128_1_1_1_1_1':
+  count: 3
+  name: _outputs_input.46
+'3_3_28_28_128_128_1_2_2_1_1':
+  count: 1
+  name: _outputs_input.36
+'3_3_56_56_64_64_1_1_1_1_1':
+  count: 3
+  name: _outputs_input.8
+'3_3_7_7_512_512_1_1_1_1_1':
+  count: 2
+  name: _outputs_input.138
+'3_3_7_7_512_512_1_2_2_1_1':
+  count: 1
+  name: _outputs_input.128
+'7_7_112_112_3_64_1_2_2_1_1':
+  count: 1
+  name: _outputs_input.2

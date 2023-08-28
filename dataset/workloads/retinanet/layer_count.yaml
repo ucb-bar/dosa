@@ -1,0 +1,67 @@
+'1_1_14_14_1024_256_1_1_1_1_1':
+  count: 1
+  name: p4_1
+'1_1_28_28_512_256_1_1_1_1_1':
+  count: 1
+  name: p3_1
+'1_1_2_2_256_256_1_1_1_1_1':
+  count: 1
+  name: p7_1
+'1_1_4_4_256_256_1_1_1_1_1':
+  count: 1
+  name: p6_1
+'1_1_7_7_2048_256_1_1_1_1_1':
+  count: 1
+  name: p5_1
+'3_3_14_14_256_256_1_1_1_1_1':
+  count: 2
+  name: p4_2
+'3_3_14_14_256_36_1_1_1_1_1':
+  count: 1
+  name: p4_regression_out
+'3_3_14_14_256_720_1_1_1_1_1':
+  count: 1
+  name: p4_classification_out
+'3_3_28_28_256_256_1_1_1_1_1':
+  count: 2
+  name: p3_2
+'3_3_28_28_256_36_1_1_1_1_1':
+  count: 1
+  name: p3_regression_out
+'3_3_28_28_256_720_1_1_1_1_1':
+  count: 1
+  name: p3_classification_out
+'3_3_2_2_256_256_1_1_1_1_1':
+  count: 2
+  name: p7_2
+'3_3_2_2_256_256_1_2_2_1_1':
+  count: 1
+  name: p7
+'3_3_2_2_256_36_1_1_1_1_1':
+  count: 1
+  name: p7_regression_out
+'3_3_2_2_256_720_1_1_1_1_1':
+  count: 1
+  name: p7_classification_out
+'3_3_4_4_2048_256_1_2_2_1_1':
+  count: 1
+  name: p6
+'3_3_4_4_256_256_1_1_1_1_1':
+  count: 2
+  name: p6_2
+'3_3_4_4_256_36_1_1_1_1_1':
+  count: 1
+  name: p6_regression_out
+'3_3_4_4_256_720_1_1_1_1_1':
+  count: 1
+  name: p6_classification_out
+'3_3_7_7_256_256_1_1_1_1_1':
+  count: 2
+  name: p5_2
+'3_3_7_7_256_36_1_1_1_1_1':
+  count: 1
+  name: p5_regression_out
+'3_3_7_7_256_720_1_1_1_1_1':
+  count: 1
+  name: p5_classification_out
+

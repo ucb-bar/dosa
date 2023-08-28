@@ -1,0 +1,18 @@
+problem:
+  instance:
+    S: 768
+  shape:
+    data-spaces:
+    - name: Weights
+      projection:
+      - - - S
+    - name: Inputs
+      projection:
+      - - - S
+    - name: Outputs
+      projection:
+      - - - S
+      read-write: true
+    dimensions:
+    - S
+    name: elementwise

@@ -1,0 +1,18 @@
+# self.post_rnn = rnn(
+#     rnn="lstm",
+#     input_size=2 * 1024,
+#     hidden_size=1024,
+#     num_layers=3,
+# )
+problem:
+  C: 3072
+  Hdilation: 1
+  Hstride: 1
+  K: 1024
+  N: 1
+  P: 1
+  Q: 1
+  R: 1
+  S: 1
+  Wdilation: 1
+  Wstride: 1

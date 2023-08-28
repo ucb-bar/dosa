@@ -1,0 +1,9 @@
+[submodule "accelergy-timeloop-infrastructure"]
+	path = accelergy-timeloop-infrastructure
+	url = https://github.com/charleshong3/accelergy-timeloop-infrastructure.git
+[submodule "mapper/gamma-timeloop"]
+	path = mapper/gamma-timeloop
+	url = https://github.com/maestro-project/gamma-timeloop.git
+[submodule "mapper/cosa"]
+	path = mapper/cosa-gemmini
+	url = https://github.com/ucb-bar/cosa.git

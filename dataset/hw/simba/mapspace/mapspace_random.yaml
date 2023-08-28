@@ -1,0 +1,69 @@
+mapper:
+  algorithm: random
+  optimization-metrics:
+  - delay
+  live-status: False
+  num-threads: 10
+  timeout: 1000
+  victory-condition: 0
+  search-size: 100
+  sync-interval: 0
+  log-suboptimal: True
+
+mapspace_constraints:
+- target: Registers
+  type: datatype 
+  keep:
+  - Weights
+  bypass:
+  - Inputs 
+  - Outputs
+- target: AccumulationBuffer
+  type: datatype
+  keep:
+  - Outputs
+  bypass:
+  - Weights
+  - Inputs
+- target: WeightBuffer
+  type: datatype
+  keep:
+  - Weights
+  bypass:
+  - Inputs
+  - Outputs
+- target: InputBuffer
+  type: datatype
+  keep:
+  - Inputs
+  bypass:
+  - Weights
+  - Outputs
+- target: GlobalBuffer
+  type: datatype
+  keep:
+  - Inputs
+  - Outputs
+  bypass:
+  - Weights
+  - target: Registers
+    type: temporal
+    factors: R=1 S=1 N=1 C=1 K=1 # parallel along P and Q dim
+    permutation: PQRSCKN
+  - target: AccumulationBuffer
+    type: spatial
+    factors: R=1 S=1 P=1 Q=1 N=1 K=1 # A: if K=1 not specified, Timeloop will assume output channels can be mapped to whatever lane of acc buf
+    permutation: KCRSPQN # K along X dim
+    split: 1
+  - target: AccumulationBuffer
+    type: temporal
+    factors: R=0 S=0 P=1 Q=1 C=1 K=1 N=1 # A: R=0 says use filter width and height
+    permutation: RSPQCKN
+  - target: WeightBuffer
+    type: spatial
+    factors: R=1 S=1 P=1 Q=1 N=1 C=1
+    permutation: KCRSPQN
+    split: 1
+  - target: WeightBuffer
+    type: temporal
+    factors: R=1 S=1 N=1 # A: N=1, but not sure if constraint of NVDLA or just what happens

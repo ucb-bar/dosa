@@ -1,0 +1,64 @@
+architecture:
+  version: 0.3
+
+  subtree:
+  - name: System
+    local:
+    - name: DRAM
+      class: DRAM
+      attributes:
+        # reduction_supported: true
+        instances: 1
+        word-bits: 8
+        block_size: 64
+        shared_bandwidth: 8 # TODO: set based on interface in our SoC setting
+
+    subtree:
+    - name: Chip
+      attributes:
+        technology: 28nm # TODO
+      local:
+      - name: ConvolutionBuffer 
+        class: SRAM
+        attributes:
+          sizeKB: 512 # depth * width/8 - can be inferred
+          # depth: 512 # constant; docs say 4 KB ~ 32 KB per bank
+          # width: 64 # 8B for small, 64B for large
+          instances: 1
+          meshX: 1
+          word-bits: 8
+          read-bandwidth: 128
+          write-bandwidth: 64
+          n_rd_ports: 2 # A: doesn't affect perf estimates if bw specified, only energy
+          n_wr_ports: 2
+          # n_banks: 16 # 2 ~ 32, but CACTI supports only up to 16... use instances instead?
+      - name: Accumulator # [0..15] is the new way to represent
+        class: SRAM
+        attributes:
+          entries: 256 # constant?
+          multiple_buffering: 2 # double size or no?
+          instances: 16
+          meshX: 16
+          word-bits: 32
+          cluster-size: 16 # treat all 16 instances as a wide vector accessed w/ one address
+          network-word-bits: 32
+          n_rdwr_ports: 2
+      subtree:
+      - name: Lane[0..1023] # Atomic-C=16~128, Atomic-K=4~16, but for nv_small C=8, so this is outdated info
+        local:
+        - name: Registers
+          class: SRAM
+          attributes:
+            # depth: 1
+            # width: 8
+            entries: 1
+            meshX: 16 # Atomic-C=16
+            word-bits: 16
+            cluster-size: 64
+            n_rdwr_ports: 2
+            n_banks: 1
+        - name: MACC
+          class: intmac
+          attributes:
+            meshX: 16 # nv_small: Atomic-C=8, Atomic-K=8
+            word-bits: 16

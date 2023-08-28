@@ -1,0 +1,18 @@
+# self.pre_rnn = rnn(
+#     rnn="lstm",
+#     input_size=80,
+#     hidden_size=1024,
+#     num_layers=2,
+# )
+problem:
+  C: 1104
+  Hdilation: 1
+  Hstride: 1
+  K: 80
+  N: 1
+  P: 1
+  Q: 1
+  R: 1
+  S: 1
+  Wdilation: 1
+  Wstride: 1

@@ -1,0 +1,14 @@
+# https://github.com/mlcommons/inference/blob/master/speech_recognition/rnnt/pytorch/model_separable_rnnt.py#L155
+# torch.nn.Linear(320 + 1024, 512)
+problem:
+  C: 1344
+  Hdilation: 1
+  Hstride: 1
+  K: 512
+  N: 1
+  P: 1
+  Q: 1
+  R: 1
+  S: 1
+  Wdilation: 1
+  Wstride: 1

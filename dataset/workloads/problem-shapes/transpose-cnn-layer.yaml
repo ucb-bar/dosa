@@ -1,0 +1,33 @@
+# TODO: fix problem shape
+shape:
+  name: "transpose-cnn-layer"
+  dimensions: [ R, S, P, Q, C, K, N ]
+  coefficients:
+    - name: Wstride
+      default: 1
+    - name: Hstride
+      default: 1
+    - name: Wdilation
+      default: 1
+    - name: Hdilation
+      default: 1
+  data-spaces:
+    - name: Weights
+      projection:
+        - [ [C] ]
+        - [ [K] ]
+        - [ [R] ]
+        - [ [S] ]
+    - name: Inputs
+      projection:
+        - [ [N] ]
+        - [ [C] ]
+        - [ [R, Wdilation], [P, Wstride] ] # SOP form: R*Wdilation + P*Wstride
+        - [ [S, Hdilation], [Q, Hstride] ] # SOP form: S*Hdilation + Q*Hstride 
+    - name: Outputs
+      projection:
+        - [ [N] ]
+        - [ [K] ]
+        - [ [Q] ]
+        - [ [P] ]
+      read-write: True

@@ -1,0 +1,14 @@
+problem:
+  shape: cnn-layer
+  instance:
+    C: 64
+    Hdilation: 1
+    Hstride: 2
+    K: 128
+    N: 1
+    P: 256
+    Q: 1
+    R: 3
+    S: 1
+    Wdilation: 1
+    Wstride: 0

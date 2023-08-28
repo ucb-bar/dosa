@@ -1,0 +1,15 @@
+problem:
+  shape: "3d-cnn-layer"
+    dimensions: [ R, S, T, P, Q, F, C, K, N ]
+  instance:
+    C: 128
+    Hdilation: 1
+    Hstride: 2
+    K: 256
+    N: 1
+    P: 128
+    Q: 1
+    R: 1
+    S: 1
+    Wdilation: 1
+    Wstride: 0
