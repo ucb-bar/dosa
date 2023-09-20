@@ -97,70 +97,77 @@ def eval_auto_tile(output_dir, arch_name, dataset_path, workload):
     k_sp_idx = mapping_utils.mapping_index(4, 7, 2, "spatial", 5)
 
     results = {}
-    groups = []
-    for i in range(0, len(train_data), 16):
-        groups.append(list(range(i, min(i + 16, len(train_data)))))
-    for group_idxs in groups:
-        procs = []
-        for i in group_idxs:
-            targets, arch_feats, prob_feats, map_feats = train_data[i]
+    tiled_min_hw = None
+    for energy_type in ["auto", "tiled"]:
+        groups = []
+        for i in range(0, len(train_data), 16):
+            groups.append(list(range(i, min(i + 16, len(train_data)))))
+        for group_idxs in groups:
+            procs = []
+            for i in group_idxs:
+                targets, arch_feats, prob_feats, map_feats = train_data[i]
 
-            # this function assumes that the feats passed in directly correspond to the order of keys found in `dataset`
-            # convert prob feats to Prob instance
-            prob_keys = utils.keys_by_type(train_data.df, "prob")
-            prob = eval.parse_prob(output_dir, prob_keys, prob_feats)
-            results[prob.config_str()] = {
-                "auto_cycle": orig_df["target.gemmini_auto_cycle"][i],
-                "tiled_energy": orig_df["target.energy"][i],
-                "tiled_cycle": orig_df["target.gemmini_cycle"][i],
-            }
-            # if "dse.auto_tiling" not in orig_df.columns:
-            #     continue
+                # this function assumes that the feats passed in directly correspond to the order of keys found in `dataset`
+                # convert prob feats to Prob instance
+                prob_keys = utils.keys_by_type(train_data.df, "prob")
+                prob = eval.parse_prob(output_dir, prob_keys, prob_feats)
+                if prob.config_str() not in results:
+                    results[prob.config_str()] = {
+                        "auto_cycle": orig_df["target.gemmini_auto_cycle"][i],
+                        # "tiled_energy": orig_df["target.energy"][i],
+                        "tiled_cycle": orig_df["target.gemmini_cycle"][i],
+                    }
+                if energy_type == "tiled":
+                    tiled_min_hw = list(arch_feats)
+                # if "dse.auto_tiling" not in orig_df.columns:
+                #     continue
 
-            # replace mapping with auto_tiling mapping
-            reg_start_idx = mapping_utils.mapping_index(4, 7, 0, "temporal", 0)
-            acc_start_idx = mapping_utils.mapping_index(4, 7, 1, "temporal", 0)
-            map_feats[14:21] = torch.tensor([2, 3, 5, 6, 1, 4, 7]) # CRSKPQN - DRAM loop ordering
-            map_feats[reg_start_idx:reg_start_idx+7] = torch.tensor([1] * 7)
-            acc_factors = torch.tensor([int(f) for f in orig_df["dse.auto_tiling"][i].split("_")])
-            acc_factors[4] = max(1, torch.div(acc_factors[4], 16, rounding_mode="trunc"))
-            acc_factors[5] = max(1, torch.div(acc_factors[5], 16, rounding_mode="trunc"))
-            map_feats[acc_start_idx:acc_start_idx+7] = acc_factors
-            map_feats[c_sp_idx] = 16
-            map_feats[k_sp_idx] = 16
+                # replace mapping with auto_tiling mapping
+                reg_start_idx = mapping_utils.mapping_index(4, 7, 0, "temporal", 0)
+                acc_start_idx = mapping_utils.mapping_index(4, 7, 1, "temporal", 0)
+                if energy_type == "auto":
+                    map_feats[14:21] = torch.tensor([2, 3, 5, 6, 1, 4, 7]) # CRSKPQN - DRAM loop ordering
+                    map_feats[reg_start_idx:reg_start_idx+7] = torch.tensor([1] * 7)
+                    acc_factors = torch.tensor([int(f) for f in orig_df["dse.auto_tiling"][i].split("_")])
+                    acc_factors[4] = max(1, torch.div(acc_factors[4], 16, rounding_mode="trunc"))
+                    acc_factors[5] = max(1, torch.div(acc_factors[5], 16, rounding_mode="trunc"))
+                    map_feats[acc_start_idx:acc_start_idx+7] = acc_factors
+                    map_feats[c_sp_idx] = 16
+                    map_feats[k_sp_idx] = 16
 
-            map_feats[acc_start_idx+7:acc_start_idx+14] = torch.tensor([5, 6, 1, 2, 4, 7, 3]) # PQNCRSK accumulator loop loop ordering
-            map_feats[reg_start_idx+7:reg_start_idx+14] = torch.tensor([3, 4, 1, 2, 5, 6, 7]) # PQRSCKN reg loop ordering
+                map_feats[acc_start_idx+7:acc_start_idx+14] = torch.tensor([5, 6, 1, 2, 4, 7, 3]) # PQNCRSK accumulator loop loop ordering
+                map_feats[reg_start_idx+7:reg_start_idx+14] = torch.tensor([3, 4, 1, 2, 5, 6, 7]) # PQRSCKN reg loop ordering
 
-            map_feats = mapping_utils.round_mapping(map_feats, prob, round_down=True)
-            arch_feats = [16, 128, 32]
+                map_feats = mapping_utils.round_mapping(map_feats, prob, round_down=True)
+                if energy_type == "auto":
+                    arch_feats = [16, 128, 32]
 
-            proc, read_bundle, arch_config = eval.eval_layer_dataset(output_dir, arch_name, train_data, 
-                                                                    arch_feats, prob_feats, map_feats=map_feats, run_async=True, **dataset_kwargs)
-            procs.append((proc, read_bundle, arch_config))
-            # row = eval.eval_layer_dataset(output_dir, arch_name, train_data, 
-            #                               arch_feats, prob_feats, map_feats=map_feats, run_async=False, **dataset_kwargs)
-            # orig_df.loc[i, "target.cycle"] = row["target.cycle"]
-            # cycles[prob.config_str()] = row["target.cycle"]
+                proc, read_bundle, arch_config = eval.eval_layer_dataset(output_dir, arch_name, train_data, 
+                                                                        arch_feats, prob_feats, map_feats=map_feats, run_async=True, **dataset_kwargs)
+                procs.append((proc, read_bundle, arch_config))
+                # row = eval.eval_layer_dataset(output_dir, arch_name, train_data, 
+                #                               arch_feats, prob_feats, map_feats=map_feats, run_async=False, **dataset_kwargs)
+                # orig_df.loc[i, "target.cycle"] = row["target.cycle"]
+                # cycles[prob.config_str()] = row["target.cycle"]
 
-        running_procs = [True for _ in procs]
-        cycles = {}
-        while any(running_procs):
-            for i in range(len(procs)):
-                if not running_procs[i]:
-                    continue
-                proc = procs[i][0]
-                retcode = proc.poll()
-                if retcode is not None:
-                    read_bundle = procs[i][1]
-                    prob = read_bundle[0]
-                    arch_config = procs[i][2]
-                    row = arch_config.read_run_mapping(*read_bundle)
-                    logger.debug("%s %s", row["target.energy"], prob.config_str())
-                    results[prob.config_str()]["auto_energy"] = row["target.energy"]
-                    running_procs[i] = False
-                    # orig_df.at[i, "target.cycle"] = row["target.cycle"]
-            time.sleep(0.5)
+            running_procs = [True for _ in procs]
+            cycles = {}
+            while any(running_procs):
+                for i in range(len(procs)):
+                    if not running_procs[i]:
+                        continue
+                    proc = procs[i][0]
+                    retcode = proc.poll()
+                    if retcode is not None:
+                        read_bundle = procs[i][1]
+                        prob = read_bundle[0]
+                        arch_config = procs[i][2]
+                        row = arch_config.read_run_mapping(*read_bundle)
+                        logger.debug("%s %s", row["target.energy"], prob.config_str())
+                        results[prob.config_str()][f"{energy_type}_energy"] = row["target.energy"]
+                        running_procs[i] = False
+                        # orig_df.at[i, "target.cycle"] = row["target.cycle"]
+                time.sleep(0.5)
 
     layer_count = get_layer_count_dict(workload)
 
@@ -183,6 +190,7 @@ def eval_auto_tile(output_dir, arch_name, dataset_path, workload):
     print("DOSA energy:", dosa_energy)
     print("DOSA cycle:", dosa_cycle)
     print("DOSA EDP:", dosa_energy * dosa_cycle)
+    print("DOSA min HW:", ", ".join([str(float(x)) for x in tiled_min_hw]))
     print()
     auto_energy = sum([results[k]["auto_energy"] for k in sorted_layers])
     auto_cycle = sum([results[k]["auto_cycle"] for k in sorted_layers])

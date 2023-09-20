@@ -1,6 +1,7 @@
 import multiprocessing
 import traceback
 import pathlib
+import shutil
 
 import numpy as np
 import pandas as pd
@@ -16,9 +17,9 @@ class LatencyModel():
         self.output_dir = output_dir
         self.relevant_mapping_keys = relevant_mapping_keys
         self.mlps = None
-        self.loss_fn = torch.nn.MSELoss()
+        self.loss_fn = torch.nn.L1Loss()
 
-    def train(self, train_data: DlaDataset, valid_data: DlaDataset=None, train_model=False, with_analytical=True, continue_training=False, num_iters=1000, gpu_id=0, interp_points=0, with_cache=False):
+    def train(self, train_data: DlaDataset, valid_data: DlaDataset=None, train_model=False, with_analytical=True, with_roofline=True, continue_training=False, num_iters=1000, gpu_id=0, interp_points=0, with_cache=False):
         """Train latency model.
 
         Assumes normalized access count values have already been appended to train_data.df by EnergyModel
@@ -27,6 +28,9 @@ class LatencyModel():
         self.target_key = "target.cycle"
         self.train_model = train_model
         self.with_analytical = with_analytical
+        if not with_analytical:
+            with_roofline = False # roofline can only be used with analytical
+        self.with_roofline = with_roofline
         self.with_cache = with_cache
         access_keys = utils.keys_by_type(train_data.df, "dse.access")
         # mapping_net_layers = (128, 256, 32)
@@ -63,10 +67,9 @@ class LatencyModel():
         # hidden_layer_sizes = (256, 1024, 256)
         # hidden_layer_sizes = (32, 16)
         # hidden_layer_sizes = (512, 2048, 2048, 512, 128)
-        if with_analytical:
-            input_size = len(self.internal_relevant_idxs)+11+5+3
-        else:
-            input_size = len(self.internal_relevant_idxs)+11+3
+        input_size = len(self.internal_relevant_idxs)+11+3
+        if self.with_roofline:
+            input_size = input_size + 5
         mlp = pytorch_util.build_mlp(
             input_size=input_size,
             output_size=1,
@@ -78,11 +81,12 @@ class LatencyModel():
         )
         mlp.to(pytorch_util.device)
         mlps.append(mlp)
-        if with_analytical:
+        if self.with_analytical:
             pred_type = "both"
         else:
             pred_type = "dnn"
         mlp_paths.append(DATASET_ROOT_PATH / "dse" / "trained_models" / "artifact" / pred_type / f"mlp_{save_str}_0.pt")
+        # mlp_paths.append(self.output_dir / f"mlp_{pred_type}_{save_str}_0.pt")
 
         # hidden_layer_sizes = (256, 64)
         # mlp = pytorch_util.build_mlp(
@@ -176,6 +180,12 @@ class LatencyModel():
             print(traceback.format_exc())
             pass
 
+        for mlp_path in mlp_paths:
+            backup_mlp_path = mlp_path.parent / (mlp_path.name + ".bak")
+            if mlp_path.exists():
+                logger.info("Found existing MLP at %s, copying to %s", mlp_path, backup_mlp_path)
+                shutil.copy(mlp_path, backup_mlp_path)
+
         train_dataset = pytorch_util.X_y_dataset(arch_train, mapping_train, prob_train, y_train, access_train)
         batch_size = 100000
         train_data_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
@@ -191,7 +201,7 @@ class LatencyModel():
                 if self.with_analytical:
                     y_pred_model = self.train_predict(arch_batch, mapping_batch, access_batch, prob_batch)
                     y_pred_analytical = self.predict_analytical(arch_batch, mapping_batch, access_batch)
-                    real_loss += torch.sum(torch.square(torch.clamp(y_pred_model - y_pred_analytical*10, min=0))) * 0.0001
+                    # real_loss += torch.sum(torch.square(torch.clamp(y_pred_model - y_pred_analytical*100, min=0))) * 0.1
                     # real_loss += torch.sum(torch.clamp(y_pred_model - y_pred_analytical*100, min=0, max=y_pred_analytical*500)) * 0.0001
                     y_pred_batch = y_pred_model + y_pred_analytical
                 else:
@@ -245,7 +255,7 @@ class LatencyModel():
             if self.with_analytical:
                 pred_analytical = self.predict_analytical(hw_config, mapping, access_counts)
                 pred_model = self.train_predict(hw_config, mapping, access_counts, probs)
-                pred_model = torch.clamp(pred_model, min=pred_analytical*-0.1, max=pred_analytical*100)
+                # pred_model = torch.clamp(pred_model, min=pred_analytical*-0.5, max=pred_analytical*2)
                 return pred_analytical + pred_model
                 # return self.predict_analytical(hw_config, mapping, access_counts) + self.train_predict(hw_config, mapping, access_counts, probs)
             else:
@@ -312,7 +322,10 @@ class LatencyModel():
             hw_config = hw_config.repeat((len(mapping), 1))
         rooflines = self.gen_rooflines(hw_config, mapping, access_counts)
         rooflines = rooflines / self.roofline_max
-        y_pred = self.mlps[0](torch.cat((hw_config, mapping[:,self.internal_relevant_idxs], rooflines, probs), dim=1))
+        if self.with_roofline:
+            y_pred = self.mlps[0](torch.cat((hw_config, mapping[:,self.internal_relevant_idxs], rooflines, probs), dim=1))
+        else:
+            y_pred = self.mlps[0](torch.cat((hw_config, mapping[:,self.internal_relevant_idxs], probs), dim=1))
         # y_pred = self.mlps[0](rooflines)
         return y_pred
 

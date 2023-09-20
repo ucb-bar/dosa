@@ -194,8 +194,10 @@ class EnergyModel():
         torch.save(optimizer.state_dict(), opt_path)
 
     def predict(self, arch_params, access_params):
-        # arch_params = self.train_data.denorm("arch", arch_params)
-        # arch_params = arch_params / self.arch_max
+        # dram_access_params = access_params[:,-1].unsqueeze(-1)
+        # dram_width = 64 / self.stats["dse.access_memlvl3_max"]
+        # dram_access_params = torch.ceil(dram_access_params / dram_width) * dram_width
+        # access_params = torch.cat((access_params[:,:-1], dram_access_params), dim=1)
         pred = self.predict_coeff(arch_params)
         return (pred * access_params).sum(dim=1).unsqueeze(-1)
 
