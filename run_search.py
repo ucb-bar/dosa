@@ -34,6 +34,11 @@ def construct_argparser():
                         action='store_true',
                         help='only plotting',
                         )
+    parser.add_argument('--ordering',
+                        type=str,
+                        help='ordering',
+                        default='shuffle',
+                        )
     return parser
 
 if __name__ == "__main__":
@@ -45,5 +50,4 @@ if __name__ == "__main__":
     output_dir = pathlib.Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    workloads = args.workload
-    mapping_driven_hw_search.search_network("gemmini", args.output_dir, args.workload, args.dataset_path, args.predictor, args.plot_only)
+    mapping_driven_hw_search.search_network("gemmini", args.output_dir, args.workload, args.dataset_path, args.predictor, args.plot_only, args.ordering)

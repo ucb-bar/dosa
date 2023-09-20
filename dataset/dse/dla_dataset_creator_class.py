@@ -57,6 +57,7 @@ class DlaDatasetCreator():
                  df=None,
                  dataset_path=None, # TODO: make optional (currently required if normalization used)
                  stats_path=None,
+                 stats=None,
                  split_ratios={"train":0.75, "valid":0.1, "test": 0.15},
                  total_samples=0,
                  shuffle=True,
@@ -140,7 +141,9 @@ class DlaDatasetCreator():
             outer_stats = utils.parse_json(self.stats_path)
         except:
             outer_stats = {}
-        if params_hash in outer_stats:
+        if stats:
+            pass
+        elif params_hash in outer_stats:
             stats = outer_stats[params_hash]
             # if stats.get("train_parquet"):
             #     skip_processing = True

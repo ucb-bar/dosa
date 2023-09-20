@@ -290,10 +290,13 @@ class MappingDrivenNetworkSearcher():
         base_gd_iters = kwargs["base_gd_iters"]
         per_start_gd_step = kwargs["per_start_gd_step"]
         round_steps = kwargs["round_steps"]
+        ordering_search_method = kwargs["ordering_search_method"]
+        gumbel_temp = kwargs["gumbel_temp"]
         shuffle_perms = kwargs["shuffle_perms"]
         extra_test_data = kwargs["extra_test_data"]
         latency_predictor_type = kwargs["predictor"]
         plot_only = kwargs["plot_only"]
+        constant_pe = kwargs["constant_pe"]
         
         train_dataset = dataset_creator.get_train_data()
         test_dataset = dataset_creator.get_test_data()
@@ -308,7 +311,7 @@ class MappingDrivenNetworkSearcher():
         # mapping_str = "L3[WIO] R2 K256 C4 Q7 S2 - L2[WI] N1 - L1[O] C32 Q2 P14 C2X - L0[W] N1" # inner["S"] - 1 is correct
         # mapping_str = "L3[WIO] K32 P12 R3 C3 Q36 S3 - L2[WI] N1 - L1[O] K2 Q3 P3 - L0[W] P3" # inner["S"] is correct
         mapping_str = "L3[WIO] S3 C16 R3 K64 - L2[WI] N1 K4X - L1[O] K2 Q14 P14 - L0[W] N1"
-        # mapping_str = "L3[WIO] P1024 K512 C64 - L2[WI] N1 - L1[O] K2 C16 - L0[W] N1"
+        # mapping_str = "L3[WIO] C2 - L2[WI] N1 - L1[O] C16 C8X - L0[W] N1"
         flat_mapping = pytorch_util.from_numpy(mapping_utils.process_mapping(mapping_str, "cnn-layer"))
         example_flat_mapping_normed = train_dataset.norm("mapping", flat_mapping)
         logger.info("denormed mapping: %s", flat_mapping)
@@ -319,6 +322,7 @@ class MappingDrivenNetworkSearcher():
         # prob = Prob(DATASET_ROOT_PATH / "workloads" / "mm" / "mm_0.yaml") # 1024 x 1024 x 1024
         # prob = Prob(DATASET_ROOT_PATH / "workloads" / "resnet50" / "_outputs_input.8.yaml")
         # prob = Prob(DATASET_ROOT_PATH / "workloads" / "bert" / "mm_0.yaml")
+        # prob = Prob(DATASET_ROOT_PATH / "workloads" / "dlrm" / "_outputs_213.yaml")
         prob = Prob({
             "problem": {
                 "C": 16,
@@ -338,6 +342,7 @@ class MappingDrivenNetworkSearcher():
         # flat_mapping.requires_grad = True
 
         # arch_config = GemminiConfig([2048, 2**20, 2**20], self.output_dir)
+        # arch_config = GemminiConfig([128, 1, 1], self.output_dir)
         # mapping_dict = arch_config.flat_mapping_to_dict("cnn-layer", mapping_utils.process_mapping(mapping_str, "cnn-layer"))
         # arch_config.run_mapping_from_dict(prob, mapping_dict)
 
@@ -424,14 +429,18 @@ class MappingDrivenNetworkSearcher():
         # exit(0)
 
         with_analytical=True
-        if latency_predictor_type == "dnn":
+        with_roofline=False
+        if "dnn" in latency_predictor_type:
             with_analytical=False
+            with_roofline=False
         train_model=False
-        if latency_predictor_type == "dnn" or latency_predictor_type == "both":
+        if "dnn" in latency_predictor_type or "both" in latency_predictor_type:
             train_model=True
+        # if "noroofline" in latency_predictor_type:
+        #     with_roofline=False
 
         latency_predictor = latency_model.LatencyModel(self.output_dir, relevant_keys)
-        latency_predictor.train(train_dataset, valid_data=test_dataset, gpu_id=self.gpu_id, train_model=train_model, with_analytical=with_analytical, 
+        latency_predictor.train(train_dataset, valid_data=test_dataset, gpu_id=self.gpu_id, train_model=train_model, with_analytical=with_analytical, with_roofline=with_roofline,
                                 continue_training=False, num_iters=50000, interp_points=0, with_cache=with_cache)
         latency_predictor.freeze()
         # latency_golden = latency_model.LatencyModel(self.output_dir, relevant_keys)
@@ -459,36 +468,64 @@ class MappingDrivenNetworkSearcher():
             # # exit(0)
             if "timeloop_dataset" in str(train_dataset.creator.params["dataset_path"]):
                 l_test, l_pred, l_losses = latency_predictor.test(test_dataset, gpu_id=self.gpu_id)
-                plt.figure()
-                plt.scatter(l_test, l_pred, s=0.3)
-                plt.xlabel("Timeloop Latency (cycles)")
-                plt.ylabel("Differentiable Model Latency (cycles)")
-                r2 = sklearn.metrics.r2_score(l_test, l_pred)
-                plt.title(f"Latency Model Correlation, r^2 = {round(r2,2)}")
-                plt.savefig(self.output_dir / "correlation_latency.png", bbox_inches="tight")
+                # plt.figure()
+                # plt.scatter(l_test, l_pred, s=0.3)
+                # plt.xlabel("Timeloop Latency (cycles)")
+                # plt.ylabel("Differentiable Model Latency (cycles)")
+                # r2 = sklearn.metrics.r2_score(l_test, l_pred)
+                # plt.title(f"Latency Model Correlation, r^2 = {round(r2,2)}")
+                # plt.savefig(self.output_dir / "correlation_latency.png", bbox_inches="tight")
 
                 e_test, e_pred, e_losses = energy_predictor.test(test_dataset, gpu_id=self.gpu_id)
-                plt.figure()
-                plt.scatter(e_test, e_pred, s=0.3)
-                plt.xlabel("Timeloop Energy (uJ)")
-                plt.ylabel("Differentiable Model Energy (uJ)")
-                r2 = sklearn.metrics.r2_score(e_test, e_pred)
-                plt.title(f"Energy Model Correlation, r^2 = {round(r2,2)}")
-                plt.savefig(self.output_dir / "correlation_energy.png", bbox_inches="tight")
+                # plt.figure()
+                # plt.scatter(e_test, e_pred, s=0.3)
+                # plt.xlabel("Timeloop Energy (uJ)")
+                # plt.ylabel("Differentiable Model Energy (uJ)")
+                # r2 = sklearn.metrics.r2_score(e_test, e_pred)
+                # plt.title(f"Energy Model Correlation, r^2 = {round(r2,2)}")
+                # plt.savefig(self.output_dir / "correlation_energy.png", bbox_inches="tight")
 
-                plt.figure()
-                plt.scatter(l_test * e_test, l_pred * e_pred, s=0.3)
-                plt.xlabel("Timeloop EDP (uJ * cycles)")
-                plt.ylabel("Differentiable Model EDP (uJ * cycles)")
-                r2 = sklearn.metrics.r2_score(l_test * e_test, l_pred * e_pred)
-                plt.title(f"EDP Correlation, r^2 = {round(r2,2)}")
-                plt.savefig(self.output_dir / "correlation_edp.png", bbox_inches="tight")
+                # plt.figure()
+                # plt.scatter(l_test * e_test, l_pred * e_pred, s=0.3)
+                # plt.xlabel("Timeloop EDP (uJ * cycles)")
+                # plt.ylabel("Differentiable Model EDP (uJ * cycles)")
+                # r2 = sklearn.metrics.r2_score(l_test * e_test, l_pred * e_pred)
+                # plt.title(f"EDP Correlation, r^2 = {round(r2,2)}")
+                # plt.savefig(self.output_dir / "correlation_edp.png", bbox_inches="tight")
+
+                units = {
+                    "Latency": "cycles",
+                    "Energy": "uJ",
+                    "EDP": "uJ * cycles",
+                }
+                for metric in ["Latency", "Energy", "EDP"]:
+                    if metric == "Latency":
+                        pred = l_pred
+                        test = l_test
+                    elif metric == "Energy":
+                        pred = e_pred
+                        test = e_test
+                    elif metric == "EDP":
+                        pred = l_pred * e_pred
+                        test = l_test * e_test
+                    pred = np.array(pred)
+                    test = np.array(test)
+                    plt.figure()
+                    error = (pred - test)/test*100
+                    plt.scatter(test, error , s=1)
+                    plt.xscale("log")
+                    plt.ylim(-15, 15)
+                    plt.xlabel(f"Timeloop {metric} ({units[metric]})")
+                    plt.ylabel(f"Differentiable Model Error (%)")
+                    plt.title(f"{metric} Model Error (MAE = {round(np.absolute(error).mean().item(),2)}%)")
+                    plt.grid(axis="y")
+                    plt.savefig(self.output_dir / f"error_{metric.lower()}.png", bbox_inches="tight")
 
                 exit(0)
 
             l_test, l_pred, l_losses = latency_predictor.test(test_dataset, gpu_id=self.gpu_id)
             df = pd.DataFrame({"timeloop": l_test.flatten(), "model": l_pred.flatten()})
-            # df.to_csv(self.output_dir / "latency_test.csv")
+            df.to_csv(self.output_dir / "latency_test.csv")
             # df = df[df['timeloop'] <= 1e9]
             plt.figure()
             plt.scatter(df["timeloop"], df["model"], s=0.5)
@@ -504,10 +541,28 @@ class MappingDrivenNetworkSearcher():
             # plt.savefig(self.output_dir / utils.unique_filename("png", "latency_test"), bbox_inches="tight")
             plt.savefig(self.output_dir / f"predict_{latency_predictor_type}_testsplit.png", bbox_inches="tight")
 
+            l_test, l_pred, l_losses = latency_predictor.test(train_dataset, gpu_id=self.gpu_id)
+            df = pd.DataFrame({"timeloop": l_test.flatten(), "model": l_pred.flatten()})
+            # df.to_csv(self.output_dir / "latency_train.csv")
+            # df = df[df['timeloop'] <= 1e9]
+            plt.figure()
+            plt.scatter(df["timeloop"], df["model"], s=0.5)
+            plt.xscale("log")
+            plt.yscale("log")
+            plt.xlim(10, 10e10)
+            plt.ylim(10, 10e10)
+            r2 = sklearn.metrics.r2_score(df["timeloop"], df["model"])
+            sc = scipy.stats.spearmanr(df["timeloop"], df["model"]).correlation
+            plt.xlabel("real (cycles)")
+            plt.ylabel("pred (cycles)")
+            plt.title(f"Latency Predictions (Test Set), corr.={round(sc,2)}")
+            # plt.savefig(self.output_dir / utils.unique_filename("png", "latency_test"), bbox_inches="tight")
+            plt.savefig(self.output_dir / f"predict_{latency_predictor_type}_trainsplit.png", bbox_inches="tight")
+
             # REBUTTAL
             l_test, l_pred, l_losses = latency_predictor.test(extra_test_data, gpu_id=self.gpu_id, num_unplot_points=len(test_dataset)//2*0)
             df = pd.DataFrame({"timeloop": l_test.flatten(), "model": l_pred.flatten()})
-            # df.to_csv(self.output_dir / "latency_gemmini_test.csv")
+            df.to_csv(self.output_dir / "latency_gemmini_test.csv")
             # df = df[df['timeloop'] <= 1e9]
             plt.figure()
             plt.scatter(df["timeloop"], df["model"], s=0.5)
@@ -646,7 +701,6 @@ class MappingDrivenNetworkSearcher():
         dfs = list()
         start_perf = float("inf")
         opt_path = self.output_dir / utils.unique_filename("pt", "gd_opt")
-        dram_filler = pytorch_util.from_numpy(np.zeros((len(self.layers), 14)))
         layer_count_gpu = pytorch_util.from_numpy(np.array(self.layer_count)).unsqueeze(-1)
         lowest_first_iter_perf_loss = float('inf')
         num_tries_start = 0
@@ -704,8 +758,11 @@ class MappingDrivenNetworkSearcher():
 
             logger.info("Setting tensor requires_grad")
             normed_mappings = train_dataset.norm("mapping", mappings)#[:,relevant_idxs]
-            normed_dram_part = pytorch_util.from_numpy(np.array(normed_mappings)[:,:14])
-            input = pytorch_util.from_numpy(np.array(normed_mappings)[:,14:])
+            # normed_dram_part = pytorch_util.from_numpy(np.array(normed_mappings)[:,:14])
+            if ordering_search_method == "gumbel" or ordering_search_method == "softmax":
+                input = pytorch_util.from_numpy(np.array(normed_mappings)[:,21:])
+            else:
+                input = pytorch_util.from_numpy(np.array(normed_mappings)[:,14:])
             input.requires_grad = True
             # logger.debug("Orig CoSA mapping (normed): %s", input)
 
@@ -714,6 +771,11 @@ class MappingDrivenNetworkSearcher():
             losses = []
             # optimizer = torch.optim.SGD([input], lr=sgd_lr, momentum=0.9)
             optimizer = torch.optim.Adam([input], lr=sgd_lr)
+
+            dram_filler = pytorch_util.from_numpy(np.zeros((len(self.layers), 14)))
+            if ordering_search_method == "gumbel" or ordering_search_method == "softmax":
+                # dram_filler = torch.cat((dram_filler, pytorch_util.from_numpy(np.array(normed_mappings)[:,14:21])), dim=1)
+                dram_filler = torch.cat((dram_filler, pytorch_util.from_numpy(np.ones((len(self.layers), 7))*7)), dim=1)
 
             retry_start = False
             min_rounded_pred = float('inf')
@@ -725,7 +787,7 @@ class MappingDrivenNetworkSearcher():
                 denormed_full_mapping = train_dataset.denorm("mapping", full_mappings)
                 # logger.info("dram perm: %s", denormed_full_mapping[:,14:21])
                 dram_part = self.get_dram_factors(denormed_full_mapping, relevant_keys)
-                denormed_full_mapping = torch.cat((dram_part, denormed_full_mapping[:,14:]), dim=1)                
+                denormed_full_mapping = torch.cat((dram_part, denormed_full_mapping[:,14:]), dim=1)
 
                 # logger.debug("denormed input pre-clamp: %s", denormed_full_mapping)
                 invalid_mapping_loss = torch.square(torch.clamp(1 - denormed_full_mapping, min=0)).sum()
@@ -736,7 +798,10 @@ class MappingDrivenNetworkSearcher():
                 hw_config_normalized = train_dataset.norm("arch", hw_config)
 
                 # use for firesim experiments
-                # hw_config_loss = torch.square(torch.clamp(hw_config[0] - 16, min=0)) * 10
+                if constant_pe:
+                    hw_config_loss = torch.square(torch.clamp(hw_config[0] - 16, min=0)) * 10
+                else:
+                    hw_config_loss = 0
 
                 full_mappings = train_dataset.norm("mapping", denormed_full_mapping)
                 # normed_dram_part = full_mappings[:,:14]
@@ -744,29 +809,138 @@ class MappingDrivenNetworkSearcher():
                 if self.log_times:
                     logger.info("dram factor time %s", time.time() - start_time)
                 
-                relevant_accesses = self.get_accesses(denormed_full_mapping, self.layers)
-
                 if self.log_times:
                     pred_start_time = time.time()
 
                 ##### Area and/or energy prediction
                 # area_pred = area_model(hw_config_normalized)
-
-                # normed_relevant_accesses = train_dataset.norm("dse.access", relevant_accesses)
+                relevant_accesses = self.get_accesses(denormed_full_mapping, self.layers)
                 normed_relevant_accesses = relevant_accesses / access_means
-                energy_pred = energy_predictor.predict(hw_config, normed_relevant_accesses) * layer_count_gpu
+
+                if iter == 0:
+                    first_iter_energy_pred = energy_predictor.predict(hw_config, normed_relevant_accesses) * layer_count_gpu
+                    first_iter_latency_pred = latency_predictor.predict(hw_config_normalized, full_mappings[:,relevant_idxs], normed_relevant_accesses, layers_tensor) * layer_count_gpu
+                    first_iter_perf_loss = self.get_perf_loss(first_iter_latency_pred, first_iter_energy_pred).detach()
+                    if first_iter_perf_loss > lowest_first_iter_perf_loss * 10:
+                        logger.debug("Lowest first_iter_perf_loss %s, predicted first_iter_perf_loss %s, skipping this start point",
+                                     lowest_first_iter_perf_loss, first_iter_perf_loss)
+                        retry_start = True
+                        break
+                    elif first_iter_perf_loss < lowest_first_iter_perf_loss:
+                        logger.debug("New lowest starting first_iter_perf_loss %s", first_iter_perf_loss)
+                        lowest_first_iter_perf_loss = first_iter_perf_loss
+
+                if ordering_search_method == "gumbel" or ordering_search_method == "softmax":
+                    layer_latency_preds = []
+                    layer_energy_preds = []
+                    for l in range(len(self.layers)):
+                        latency_preds = []
+                        energy_preds = []
+                        perf_losses = []
+                        for perm in self.gen_all_perms():
+                            denormed_full_mapping_l = torch.cat((denormed_full_mapping[l][:14], perm, denormed_full_mapping[l][21:]))
+                            layer_relevant_accesses = self.get_accesses([denormed_full_mapping_l], [self.layers[l]])
+                            normed_layer_relevant_accesses = layer_relevant_accesses / access_means
+                            perm_latency_pred = latency_predictor.predict(hw_config_normalized,
+                                                                     train_dataset.norm("mapping", denormed_full_mapping_l)[relevant_idxs].unsqueeze(0), 
+                                                                     normed_layer_relevant_accesses,
+                                                                     layers_tensor[l].unsqueeze(0)
+                                                                    ) * layer_count_gpu[l]
+                            perm_energy_pred = energy_predictor.predict(hw_config, normed_layer_relevant_accesses) * layer_count_gpu[l]
+                            perm_perf_loss = self.get_perf_loss(perm_latency_pred, perm_energy_pred)
+                            latency_preds.append(perm_latency_pred)
+                            energy_preds.append(perm_energy_pred)
+                            perf_losses.append(perm_perf_loss.unsqueeze(0))
+
+                        latency_preds = torch.cat(latency_preds)
+                        energy_preds = torch.cat(energy_preds)
+                        perf_losses = torch.cat(perf_losses)
+                        perf_losses_inverted = 1 / perf_losses
+                        perm_logits = perf_losses_inverted / perf_losses_inverted.max()
+
+                        if ordering_search_method == "gumbel":
+                            gumbel_output = torch.nn.functional.gumbel_softmax(torch.log(perm_logits), tau=gumbel_temp, hard=False, dim=-1)
+                        elif ordering_search_method == "softmax":
+                            gumbel_output = torch.nn.functional.softmax(perf_losses_inverted, dim=-1)
+                        else:
+                            logger.error("Invalid ordering search method %s", ordering_search_method)
+                        # gumbel_output = perf_losses_inverted / perf_losses_inverted.sum()
+
+                        # logger.debug("gumbel_output: %s", gumbel_output)
+
+                        # flow_map = {
+                        #     0: "WS",
+                        #     1: "IS",
+                        #     2: "OS",
+                        # }
+                    
+                        # with open(self.output_dir / "gumbel_output.txt", "a") as f:
+                        #     perm = denormed_full_mapping[l,14:21]
+                        #     flow = flow_map[gumbel_output.argmax().item()]
+                        #     write_str = flow
+                        #     if l != len(self.layers) - 1:
+                        #         write_str += ","
+                        #     f.write(write_str)
+
+                        layer_latency_pred = (gumbel_output * latency_preds.squeeze()).sum().unsqueeze(0)
+                        layer_energy_pred = (gumbel_output * energy_preds.squeeze()).sum().unsqueeze(0)
+                        layer_latency_preds.append(layer_latency_pred)
+                        layer_energy_preds.append(layer_energy_pred)
+
+                    # with open(self.output_dir / "gumbel_output.txt", "a") as f:
+                    #     f.write("\n")
+
+                    layer_latency_preds = torch.cat(layer_latency_preds).unsqueeze(-1)
+                    layer_energy_preds = torch.cat(layer_energy_preds).unsqueeze(-1)
+                    latency_pred = layer_latency_preds * layer_count_gpu
+                    energy_pred = layer_energy_preds * layer_count_gpu
+                else:
+                    # import pdb
+                    # pdb.set_trace()
+                    # [4, 5, 1, 2, 6, 7, 3], # PQNRSCK, weight stationary
+                    # [2, 3, 4, 5, 6, 1, 7], # KRSPQCN, input stationary
+                    # [1, 2, 5, 6, 3, 4, 7], # RSCKPQN, output stationary
+
+                    # stationarity_map = {
+                    #     0: "WS",
+                    #     1: "IS",
+                    #     2: "OS",
+                    # }
+                    # with open(self.output_dir / "gumbel_no.txt", "a") as f:
+                    #     for l in range(len(self.layers)):
+                    #         perm = denormed_full_mapping[l,14:21]
+                    #         flow = ""
+                    #         if perm[2] < perm[4]: # P inner to C
+                    #             if perm[2] < perm[5]: # P inner to K and C
+                    #                 flow = "WS"
+                    #             else: # K inner to P and C
+                    #                 flow = "IS"
+                    #         else:
+                    #             if perm[5] < perm[4]: # K inner to C and P
+                    #                 flow = "IS"
+                    #             else: # C inner to K and P
+                    #                 flow = "OS"
+                    #         write_str = flow
+                    #         if l != len(self.layers) - 1:
+                    #             write_str += ","
+                    #         f.write(write_str)
+                    #     f.write("\n")
+
+                    # normed_relevant_accesses = train_dataset.norm("dse.access", relevant_accesses)
+                    energy_pred = energy_predictor.predict(hw_config, normed_relevant_accesses) * layer_count_gpu
+
+                    # latency_pred = latency_model(torch.cat((full_mappings[:,relevant_idxs], layers_tensor), dim=1))
+                    latency_pred = latency_predictor.predict(hw_config_normalized, full_mappings[:,relevant_idxs], normed_relevant_accesses, layers_tensor) * layer_count_gpu
+                    # logger.debug("relevant_accesses: %s", relevant_accesses)
+                    # logger.debug("normed_relevant_accesses: %s", normed_relevant_accesses)
+                    # logger.debug("normed_latency_pred: %s", latency_pred)
+                    # latency_pred = latency_predictor.predict(full_mappings[:,relevant_idxs], layers_tensor)
+
                 denormed_energy_pred = energy_predictor.denorm_energy(energy_pred)
                 if denormed_energy_pred.sum() < 0:
                     logger.debug("relevant_accesses: %s", relevant_accesses)
                     logger.debug("normed_relevant_accesses: %s", normed_relevant_accesses)
                     logger.debug("access count coefficients: %s", energy_predictor.predict_coeff(hw_config))
-
-                # latency_pred = latency_model(torch.cat((full_mappings[:,relevant_idxs], layers_tensor), dim=1))
-                latency_pred = latency_predictor.predict(hw_config_normalized, full_mappings[:,relevant_idxs], normed_relevant_accesses, layers_tensor) * layer_count_gpu
-                # logger.debug("relevant_accesses: %s", relevant_accesses)
-                # logger.debug("normed_relevant_accesses: %s", normed_relevant_accesses)
-                # logger.debug("normed_latency_pred: %s", latency_pred)
-                # latency_pred = latency_predictor.predict(full_mappings[:,relevant_idxs], layers_tensor)
 
                 if self.log_times:
                     logger.info("perf pred time %s", time.time() - pred_start_time)
@@ -793,8 +967,9 @@ class MappingDrivenNetworkSearcher():
                 # loss = torch.exp2(latency_pred*latency_std+latency_mean).sum() * torch.exp2(area_pred*area_std+area_mean)
                 # loss = (torch.exp2(latency_pred*latency_std+latency_mean) / (2**latency_mean)).sum() * denormed_energy_pred / ((2**energy_mean)*len(self.layers))
                 # loss = (torch.log2((torch.exp2(latency_pred-100)).sum()) + 100) * latency_std + torch.log2(denormed_energy_pred) # / ((2**energy_mean)*len(self.layers)))
-                perf_loss = self.get_perf_loss(latency_pred, energy_pred)
                 # loss = denormed_energy_pred
+
+                perf_loss = self.get_perf_loss(latency_pred, energy_pred)
 
                 # logger.debug("latency part %s", torch.log2((torch.exp2(latency_pred)).sum()) * latency_std)
                 # loss = (latency_pred*latency_std+latency_mean).sum() * torch.log2(denormed_energy_pred)
@@ -802,7 +977,7 @@ class MappingDrivenNetworkSearcher():
                 arch_loss = 0
                 loss = perf_loss + 0.2*abs(perf_loss.item())*arch_loss
                 loss = loss + abs(perf_loss.item())*invalid_mapping_loss
-                # loss = loss + abs(perf_loss.item())*hw_config_loss
+                loss = loss + abs(perf_loss.item())*hw_config_loss
                 if torch.isinf(loss) or torch.isnan(loss):
                     import pdb
                     pdb.set_trace()
@@ -812,18 +987,8 @@ class MappingDrivenNetworkSearcher():
                 #              torch.exp2(area_pred*area_std+area_mean).item(), torch.exp2(latency_pred*latency_std+latency_mean).sum().item(), loss.item())
                 logger.debug("%s Min hw (total denormed): %s, predicted energy (denormed) %s, predicted latency (denormed): %s, predicted EDP %s, arch regularization loss %s, invalid mapping loss %s, total loss %s",
                              iter, hw_config, denormed_energy_pred.sum(), train_dataset.denorm("target.cycle", latency_pred).sum().item(), train_dataset.denorm("target.cycle", latency_pred).sum() * denormed_energy_pred.sum(),
-                             0.2*abs(loss.item())*arch_loss, abs(loss.item())*invalid_mapping_loss, loss)
+                             0.2*abs(perf_loss.item())*arch_loss, abs(perf_loss.item())*invalid_mapping_loss, loss)
                 
-                if iter == 0:
-                    if perf_loss > lowest_first_iter_perf_loss * 10:
-                        logger.debug("Lowest perf_loss %s, predicted perf_loss %s, skipping this start point",
-                                     lowest_first_iter_perf_loss, perf_loss)
-                        retry_start = True
-                        break
-                    elif perf_loss < lowest_first_iter_perf_loss:
-                        logger.debug("New lowest starting perf_loss %s", perf_loss)
-                        lowest_first_iter_perf_loss = perf_loss
-
                 # wandb.log({f"start-{len(results)}": {
                 #     "latency-pred": train_dataset.denorm("target.cycle", latency_pred).sum().item(),
                 #     "energy-pred": denormed_energy_pred.sum().item(),
@@ -859,14 +1024,16 @@ class MappingDrivenNetworkSearcher():
                 if ((iter+1) % round_steps) == 0 or iter == num_iters - 1:
                     logger.debug("Predicted latency per layer (before rounding): %s", train_dataset.denorm("target.cycle", latency_pred))
                     logger.debug("Predicted energy per layer (before rounding): %s", denormed_energy_pred)
-                    logger.debug("Predicted total latency (before rounding): %s", train_dataset.denorm("target.cycle", latency_pred).sum())
-                    logger.debug("Predicted total energy (before rounding): %s", denormed_energy_pred.sum())
+                    logger.debug("Predicted total latency (before rounding): %s", (train_dataset.denorm("target.cycle", latency_pred) * layer_count_gpu).sum())
+                    logger.debug("Predicted total energy (before rounding): %s", (denormed_energy_pred * layer_count_gpu).sum())
 
                     # every N iters, round to the nearest valid mapping
                     full_mappings = torch.cat((dram_filler, input), dim=1)
                     denormed_full_mapping = train_dataset.denorm("mapping", full_mappings)
-                    dram_part = self.get_dram_factors(denormed_full_mapping, relevant_keys)
-                    denormed_full_mapping = torch.cat((dram_part, denormed_full_mapping[:,14:]), dim=1)
+
+                    dram_factors = self.get_dram_factors(denormed_full_mapping, relevant_keys)
+                    denormed_full_mapping = torch.cat((dram_factors, denormed_full_mapping[:,14:]), dim=1)
+
                     denormed_full_mapping = pytorch_util.to_numpy(denormed_full_mapping)
                     # logger.debug("denormed_full_mapping: %s", torch.tensor(denormed_full_mapping))
                     rounded_denormed_full_mapping = [mapping_utils.round_mapping(denormed_full_mapping[i], self.layers[i], round_perms=False) for i in range(len(self.layers))]
@@ -880,16 +1047,21 @@ class MappingDrivenNetworkSearcher():
                     normed_relevant_accesses = relevant_accesses / access_means
                     latency_pred = latency_predictor.predict(hw_config_normalized, train_dataset.norm("mapping", rounded_denormed_full_mapping)[:, relevant_idxs], normed_relevant_accesses, layers_tensor) * layer_count_gpu
                     energy_pred = energy_predictor.predict(hw_config, normed_relevant_accesses) * layer_count_gpu
+                    denormed_energy_pred = energy_predictor.denorm_energy(energy_pred)
 
                     logger.debug("Predicted latency per layer (after rounding): %s", train_dataset.denorm("target.cycle", latency_pred))
-                    logger.debug("Predicted total latency (after rounding): %s", train_dataset.denorm("target.cycle", latency_pred).sum())
                     logger.debug("Predicted energy per layer (after rounding): %s", denormed_energy_pred)
-                    logger.debug("Predicted total energy (after rounding): %s", denormed_energy_pred.sum())
+                    logger.debug("Predicted total latency (after rounding): %s", (train_dataset.denorm("target.cycle", latency_pred) * layer_count_gpu).sum())
+                    logger.debug("Predicted total energy (after rounding): %s", (denormed_energy_pred * layer_count_gpu).sum())
 
-                    best_perf = self.get_perf_loss(latency_pred, energy_pred)
-                    if shuffle_perms:
+                    if ordering_search_method == "gumbel" or ordering_search_method == "softmax":
+                        best_perf = float("inf")
+                    else:
+                        best_perf = self.get_perf_loss(latency_pred, energy_pred)
+
+                    if ordering_search_method != "none":
                         logger.debug("Perf before trying perms: %s %s %s", latency_pred, energy_pred, best_perf)
-                        # try some new random perms
+                        # try all perms for dram level
                         for l in range(len(self.layers)):
                             relevant_accesses_clone = relevant_accesses.clone()
                             best_perm = rounded_denormed_full_mapping[l][14:21].clone()
@@ -936,8 +1108,12 @@ class MappingDrivenNetworkSearcher():
                             min_rounded_mapping = rounded_denormed_full_mapping.clone().detach()
                             best_pred_iter = iter
                         break
-                        
-                    input = train_dataset.norm("mapping", rounded_denormed_full_mapping)[:,14:]
+
+                    if ordering_search_method == "gumbel" or ordering_search_method == "softmax":
+                        input = train_dataset.norm("mapping", rounded_denormed_full_mapping)[:,21:]
+                    else:
+                        input = train_dataset.norm("mapping", rounded_denormed_full_mapping)[:,14:]
+
                     input.requires_grad=True
                     # optimizer = torch.optim.SGD([input], lr=sgd_lr, momentum=0.9)
                     # sdg_lr = sgd_lr / 2
@@ -976,9 +1152,9 @@ class MappingDrivenNetworkSearcher():
                 rows = self.eval_mappings(mappings, return_rows=True)
                 df = pd.DataFrame(rows)
                 dfs.append(df)
-                # df_path = self.output_dir / utils.unique_filename("csv", f"gd_results_{self.workload_name}_{len(results)}")
-                # logger.debug("Saving rows to %s", df_path)
-                # df.to_csv(df_path, index=False)
+                df_path = self.output_dir / utils.unique_filename("csv", f"gd_results_{self.workload_name}_{len(results)}")
+                logger.debug("Saving rows to %s", df_path)
+                df.to_csv(df_path, index=False)
                 this_start_result = self.aggregate_rows(rows)
                 results.append(this_start_result)
                 # wandb.log({"results": this_start_result,
@@ -1068,7 +1244,7 @@ class MappingDrivenNetworkSearcher():
 
         return relevant_accesses
 
-    def get_perf_loss(self, latency_pred: torch.Tensor, energy_pred: torch.Tensor, area_pred: torch.Tensor=None):
+    def get_perf_loss(self, latency_pred: torch.Tensor, energy_pred: torch.Tensor, area_pred: torch.Tensor=None) -> torch.Tensor:
         if self.metric == "edp":
             log_once("loss_fn: latency_pred.sum() * energy_pred.sum()")
             # loss = torch.log2((latency_pred + latency_mean / latency_std).sum()) + torch.log2(denormed_energy_pred)
@@ -1117,7 +1293,7 @@ class MappingDrivenNetworkSearcher():
                         mapping_idx = mapping_utils.mapping_index(num_mem_lvls, num_dims, mem_lvl, fac_type, dim_idx)
                         temporal_factors[dim_idx] = temporal_factors[dim_idx] * denormed_mappings[:,mapping_idx].unsqueeze(0)
         temporal_factors = torch.transpose(torch.cat(temporal_factors, dim=0), 0, 1)
-        temporal_factors = 1 / temporal_factors
+        temporal_factors = 1 / (temporal_factors) # TODO: add epsilon to not create infs?
 
         spatial_factors = pytorch_util.from_numpy(np.array([[1.] * 7] * len(self.layers)))
         dram_factors = torch.cat((spatial_factors, temporal_factors), dim=1)
@@ -1306,7 +1482,7 @@ def add_min_hw_col(arch_name, output_dir, dataset):
     # pool.close()
     # df.swifter.apply(add_col, axis=1)
 
-def search_network(arch_name: str, output_dir: pathlib.Path, workload: str, dataset_path: str, predictor: str="analytical", plot_only: bool=False):
+def search_network(arch_name: str, output_dir: pathlib.Path, workload: str, dataset_path: str, predictor: str="analytical", plot_only: bool=False, ordering: str="shuffle"):
     output_dir = pathlib.Path(output_dir).resolve()
     dataset_path = pathlib.Path(dataset_path).resolve()
 #     # output_dir = pathlib.Path("output_dir_mapping_driven_hw_search")
@@ -1369,16 +1545,26 @@ def search_network(arch_name: str, output_dir: pathlib.Path, workload: str, data
         elif workload == "resnet50" or workload == "retinanet":
             sgd_lr = 7.5e-5
         else:
-            sgd_lr = 1e-4
+            sgd_lr = 1e-5
         # sgd_lr = 3e-5
         # sgd_lr = 1e-4
     elif target == "energy":
         sgd_lr = 1e-4
-    
+
+    # if gumbel_perms:
+    #     sgd_lr = sgd_lr * 2
+    # if gumbel_perms == True:
+    #     sgd_lr = sgd_lr * 8
+    # else:
+    #     sgd_lr = sgd_lr * 2
+    # sgd_lr = sgd_lr * 8
+
     if "timeloop" in str(dataset_path):
         split_ratios = {"train": 0.001, "test": 0.999}
+        constant_pe = False
     else:
         split_ratios = {"train": 0.92, "test": 0.08}
+        constant_pe = True
     
     dataset_kwargs = {
         "dataset_path":dataset_path, "shuffle":True, "total_samples":10_000, "split_ratios":split_ratios, "process_mappings":"split",
@@ -1399,9 +1585,12 @@ def search_network(arch_name: str, output_dir: pathlib.Path, workload: str, data
         "base_gd_iters": 1490,
         "per_start_gd_step": 0,
         "round_steps": 500,
+        "ordering_search_method": ordering,
+        "gumbel_temp": 1,
         "shuffle_perms": True,
         "predictor": predictor,
         "plot_only": plot_only,
+        "constant_pe": constant_pe,
     }
     config={
         "logfile": logger.parent.handlers[0].baseFilename,
@@ -1420,7 +1609,6 @@ def search_network(arch_name: str, output_dir: pathlib.Path, workload: str, data
     # )
 
     # seeds = [0, 100, 1111, 8888, 99999]
-    # seeds = [99999]
     seeds = [0]
     logger.debug("seeds: %s", seeds)
     for seed in seeds:
@@ -1435,18 +1623,22 @@ def search_network(arch_name: str, output_dir: pathlib.Path, workload: str, data
         train_data = dla_dataset_creator.get_train_data()
 
         gemmini_data_kwargs = dataset_kwargs.copy()
-        gemmini_test_df = pd.read_csv(DATASET_ROOT_PATH.parent / "data" / "firesim_test_data" / "gemmini_test_data.csv")
+        # gemmini_test_df = pd.read_csv(DATASET_ROOT_PATH.parent / "data" / "firesim_test_data" / f"{predictor}.csv")
+        gemmini_test_df = pd.read_csv(DATASET_ROOT_PATH.parent / "data" / "firesim_test_data" / f"dataset.csv")
         gemmini_test_df = gemmini_test_df.drop(columns=["target.gemmini_auto_cycle"])
         gemmini_test_df["target.cycle"] = gemmini_test_df["target.gemmini_cycle"]
         gemmini_data_kwargs["dataset_path"] = None
         gemmini_data_kwargs["df"] = gemmini_test_df
         gemmini_data_kwargs["split_ratios"] = {"train": 1}
+        gemmini_data_kwargs["stats"] = dla_dataset_creator.stats
         gemmini_test_data = DlaDatasetCreator(**gemmini_data_kwargs).get_train_data()
         search_kwargs["extra_test_data"] = gemmini_test_data
 
         utils.set_random_seed(seed)
-        random_arch_configs = [init_hw_config(arch_name, "random", output_dir) for _ in range(30)]
-        # random_arch_configs = [init_hw_config(arch_name, [16, 2**random.randrange(0, 12, 1), 2**random.randrange(0, 12, 1)], output_dir) for _ in range(30)]
+        if constant_pe:
+            random_arch_configs = [init_hw_config(arch_name, [16, 2**random.randrange(0, 12, 1), 2**random.randrange(0, 12, 1)], output_dir) for _ in range(30)]
+        else:
+            random_arch_configs = [init_hw_config(arch_name, "random", output_dir) for _ in range(30)]
         # random_arch_configs = [init_hw_config(arch_name, [16, 128, 32], output_dir) for _ in range(search_kwargs["num_starts"])]
 
         # start_time = time.time()
@@ -1490,6 +1682,7 @@ def search_network(arch_name: str, output_dir: pathlib.Path, workload: str, data
         logger.info("Searched results predicted best: %s", min(losses_lst))
         logger.info("Searched results real: [%s]", ', '.join(['{:.3e}'.format(x) for x in bo_results]))
         logger.info("Searched results real best: %s", min(bo_results))
+        logger.info("Start perf: %s", start_perf)
         logger.info("Same HW CoSA results: [%s]", ', '.join(['{:.3e}'.format(x) for x in same_hw_cosa_results]))
         logger.info("Same HW CoSA best result: %s", min(same_hw_cosa_results))
         logger.info("Same HW random mapper results: [%s]", ', '.join(['{:.3e}'.format(x) for x in same_hw_random_results]))
