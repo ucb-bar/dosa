@@ -1,2 +1,5 @@
 #!/bin/bash
-python dataset/hw/gemmini/calibration/calibration.py --workload $1 --dataset_path $2
+for pred in "analytical" "dnn" "both" 
+do
+    python run_search.py --workload bert --predictor $pred --dataset_path data/firesim_training_data/firesim_results.csv --plot_only
+done
