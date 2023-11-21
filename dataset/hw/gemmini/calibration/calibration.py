@@ -6,6 +6,7 @@ import argparse
 
 import torch
 import pandas as pd
+import numpy as np
 
 from dataset import DATASET_ROOT_PATH
 from dataset.common import utils, logger, mapping_utils
@@ -45,7 +46,8 @@ def eval_layers(output_dir, arch_name, dataset_path):
 
         # this function assumes that the feats passed in directly correspond to the order of keys found in `dataset`
         # convert prob feats to Prob instance
-        arch_feats[0] = max(map_feats[c_sp_idx], map_feats[k_sp_idx])
+        # arch_feats[0] = max(map_feats[c_sp_idx], map_feats[k_sp_idx])
+
         prob_keys = utils.keys_by_type(train_data.df, "prob")
         prob = eval.parse_prob(output_dir, prob_keys, prob_feats)
 
@@ -59,6 +61,7 @@ def eval_layers(output_dir, arch_name, dataset_path):
 
     running_procs = [True for _ in procs]
     cycles = {}
+    energies = {}
     while any(running_procs):
         for i in range(len(procs)):
             if not running_procs[i]:
@@ -72,16 +75,20 @@ def eval_layers(output_dir, arch_name, dataset_path):
                 row = arch_config.read_run_mapping(*read_bundle)
                 logger.debug("%s %s", row["target.cycle"], prob.config_str())
                 cycles[prob.config_str()] = row["target.cycle"]
+                energies[prob.config_str()] = row["target.energy"]
                 running_procs[i] = False
-                orig_df["target.cycle"][i] = row["target.cycle"]
+                # orig_df["target.cycle"][i] = row["target.cycle"]
+                if "target.energy" not in orig_df.columns:
+                    orig_df["target.energy"] = np.nan
+                orig_df.loc[i, "target.energy"] = row["target.energy"]
         time.sleep(0.5)
 
-    # orig_df.to_csv("/scratch/charleshong/dla-dataset/data/gemmini_allnets_dummyarch_1000map_4_10_23/firesim_results_bw.csv", index=False)
+    orig_df.to_csv(dataset_path, index=False)
     sorted_layers = sorted(cycles.keys())#, key=functools.cmp_to_key(custom_comp))
     for k in sorted_layers:
         print(k)
     for k in sorted_layers:
-        print(cycles[k])
+        print(cycles[k], energies[k])
     return cycles
 
 def eval_auto_tile(output_dir, arch_name, dataset_path, workload):
@@ -98,7 +105,7 @@ def eval_auto_tile(output_dir, arch_name, dataset_path, workload):
 
     results = {}
     tiled_min_hw = None
-    for energy_type in ["auto", "tiled"]:
+    for energy_type in ["tiled"]: #["auto", "tiled"]:
         groups = []
         for i in range(0, len(train_data), 16):
             groups.append(list(range(i, min(i + 16, len(train_data)))))
@@ -113,7 +120,7 @@ def eval_auto_tile(output_dir, arch_name, dataset_path, workload):
                 prob = eval.parse_prob(output_dir, prob_keys, prob_feats)
                 if prob.config_str() not in results:
                     results[prob.config_str()] = {
-                        "auto_cycle": orig_df["target.gemmini_auto_cycle"][i],
+                        # "auto_cycle": orig_df["target.gemmini_auto_cycle"][i],
                         # "tiled_energy": orig_df["target.energy"][i],
                         "tiled_cycle": orig_df["target.gemmini_cycle"][i],
                     }
@@ -171,7 +178,8 @@ def eval_auto_tile(output_dir, arch_name, dataset_path, workload):
 
     layer_count = get_layer_count_dict(workload)
 
-    perf_types = ["tiled_energy", "tiled_cycle", "auto_cycle", "auto_energy"]
+    perf_types = ["tiled_energy", "tiled_cycle"]
+    # perf_types = ["tiled_energy", "tiled_cycle", "auto_cycle", "auto_energy"]
     # if "dse.auto_tiling" in orig_df.columns:
     #     perf_types.extend(["auto_energy"])
 
@@ -191,12 +199,12 @@ def eval_auto_tile(output_dir, arch_name, dataset_path, workload):
     print("DOSA cycle:", dosa_cycle)
     print("DOSA EDP:", dosa_energy * dosa_cycle)
     print("DOSA min HW:", ", ".join([str(float(x)) for x in tiled_min_hw]))
-    print()
-    auto_energy = sum([results[k]["auto_energy"] for k in sorted_layers])
-    auto_cycle = sum([results[k]["auto_cycle"] for k in sorted_layers])
-    print("Gemmini default energy:", auto_energy)
-    print("Gemmini default cycle:", auto_cycle)
-    print("Gemmini default EDP:", auto_energy * auto_cycle)
+    # print()
+    # auto_energy = sum([results[k]["auto_energy"] for k in sorted_layers])
+    # auto_cycle = sum([results[k]["auto_cycle"] for k in sorted_layers])
+    # print("Gemmini default energy:", auto_energy)
+    # print("Gemmini default cycle:", auto_cycle)
+    # print("Gemmini default EDP:", auto_energy * auto_cycle)
 
     return results
 
@@ -332,12 +340,12 @@ def construct_argparser():
                         help='Output Folder',
                         default='output_dir',
                         )
-    parser.add_argument('-wl',
-                        '--workload',
-                        type=str,
-                        help='<Required> Name of workload directory.',
-                        required=True,
-                        )
+    # parser.add_argument('-wl',
+    #                     '--workload',
+    #                     type=str,
+    #                     help='<Required> Name of workload directory.',
+    #                     required=True,
+    #                     )
     parser.add_argument('--dataset_path',
                         type=str,
                         help='Dataset Path',
@@ -347,7 +355,8 @@ def construct_argparser():
 
 if __name__ == "__main__":
     args = construct_argparser().parse_args()
-    eval_auto_tile(args.output_dir, "gemmini", args.dataset_path, args.workload)
+    #eval_auto_tile(args.output_dir, "gemmini", args.dataset_path, args.workload)
+    eval_layers(args.output_dir, "gemmini", args.dataset_path)
 
     # output_dir = DATASET_ROOT_PATH.parent / "output_dir_calibration"
     # arch_name = "gemmini"

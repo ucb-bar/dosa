@@ -202,7 +202,7 @@ class DlaDatasetCreator():
                 rows_reduced = True
 
             orig_archfeat_keys = utils.keys_by_type(full_dataset, "arch")
-            if full_dataset.loc[0, "arch.name"] == "gemmini":
+            if full_dataset.iloc[0].get("arch.name") == "gemmini":
                 pe_dim = np.ceil(full_dataset["arch.pe"] ** 0.5)
                 # first get bits, then get KB
                 sp_size = full_dataset["arch.mem2_depth"] * full_dataset["arch.mem2_width"] * full_dataset.get("arch.mem2_instances", 1)
@@ -212,7 +212,7 @@ class DlaDatasetCreator():
                 full_dataset["arch.pe_dim"] = pe_dim
                 full_dataset["arch.sp_size"] = sp_size
                 full_dataset["arch.acc_size"] = acc_size
-            full_dataset = full_dataset.drop(orig_archfeat_keys, axis=1)
+                full_dataset = full_dataset.drop(orig_archfeat_keys, axis=1)
 
             # Process mappings
             # May reduce data size
