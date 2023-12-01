@@ -51,6 +51,12 @@ def eval_layers(output_dir, arch_name, dataset_path):
         prob_keys = utils.keys_by_type(train_data.df, "prob")
         prob = eval.parse_prob(output_dir, prob_keys, prob_feats)
 
+        # correct any incorrect loop ordering
+        reg_start_idx = mapping_utils.mapping_index(4, 7, 0, "temporal", 0)
+        acc_start_idx = mapping_utils.mapping_index(4, 7, 1, "temporal", 0)
+        map_feats[acc_start_idx+7:acc_start_idx+14] = torch.tensor([5, 6, 1, 2, 4, 7, 3]) # PQNCRSK accumulator loop loop ordering
+        map_feats[reg_start_idx+7:reg_start_idx+14] = torch.tensor([3, 4, 1, 2, 5, 6, 7]) # PQRSCKN reg loop ordering
+
         proc, read_bundle, arch_config = eval.eval_layer_dataset(output_dir, arch_name, train_data, 
                                                                  arch_feats, prob_feats, map_feats=map_feats, run_async=True, **dataset_kwargs)
         procs.append((proc, read_bundle, arch_config))

@@ -79,7 +79,8 @@ class Prob(object):
             generated_prob_dir = DATASET_ROOT_PATH / "workloads" / "generated_probs"
             utils.mkdir_p(generated_prob_dir)
             self.path = generated_prob_dir / (self.config_str() + ".yaml")
-            utils.store_yaml(self.path, prob_path)
+            if not self.path.is_file():
+                utils.store_yaml(self.path, prob_path)
 
     def config_str(self):
         """Returnsthe key str name for representing a unique layer."""
