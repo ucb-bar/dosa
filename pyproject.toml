@@ -25,7 +25,7 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/charleshong3/dla-dataset"
+"Homepage" = "https://github.com/ucb-bar/dosa"
 
 [tool.setuptools]
 py-modules = []
