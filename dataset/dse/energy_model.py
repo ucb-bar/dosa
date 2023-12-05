@@ -60,7 +60,7 @@ class EnergyModel():
         # if valid_data is not None:
         #     valid_data.df["dse.spatial_prod"] = valid_data.df["mapping.spatial_L1_C"] * valid_data.df["mapping.spatial_L2_K"]
 
-        if "dse.access_mac" not in valid_data.df.columns:
+        if valid_data and ("dse.access_mac" not in valid_data.df.columns):
             # populate access counts
             pytorch_util.init_gpu(False)
             add_accesses_col(self.output_dir, valid_data, self.with_cache)
