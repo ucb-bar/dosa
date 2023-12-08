@@ -11,6 +11,7 @@ from dataset import DATASET_ROOT_PATH
 from dataset.workloads import Prob
 from dataset.common import utils, logger, mapping_utils
 from dataset.dse import energy_model, eval, DlaDatasetCreator
+from dataset.hw import GemminiConfig
 
 def load_dataset(dataset_path):
     split_ratios = {"train": 1}
@@ -89,6 +90,11 @@ def predict_energy(output_dir, dla_dataset):
         # mapping = mapping_utils.process_mapping(row["mapping.mapping"], layer.shape)
         mapping = map_feats.tolist()
         mappings.append(mapping)
+
+        # # uncomment if you want to run Timeloop, will be much slower
+        # arch_config = GemminiConfig(arch_feats.tolist(), output_dir)
+        # mapping_dict = arch_config.flat_mapping_to_dict(layer.shape, map_feats)
+        # timeloop_result = arch_config.run_mapping_from_dict(layer, mapping_dict)
     denormed_full_mapping = torch.tensor(mappings)
     coeffs = torch.tensor(coeffs)
     
@@ -132,16 +138,3 @@ if __name__ == "__main__":
     dla_dataset = load_dataset(args.dataset_path)
     pred = predict_energy(args.output_dir, dla_dataset)
     logger.info(pred)
-
-    # output_dir = DATASET_ROOT_PATH.parent / "output_dir_calibration"
-    # arch_name = "gemmini"
-    # workload = "resnet50"
-    # dataset_path = pathlib.Path("/scratch/charleshong/dla-dataset/data/gemmini_resnet50_defaultarch_best10000map_3_29_23/dataset.csv")
-    # dataset_path = pathlib.Path("/scratch/charleshong/dla-dataset/output_dir_mapping_driven_hw_search_model_only/gd_results_bert_0-2023-07-07--04-18-44-5WFUH5VMPBRHOXKV.csv")
-    # dataset_path = pathlib.Path("/scratch/charleshong/dla-dataset/data/firesim_6_14_23/dataset_firesim_6_14_23.csv")
-    # dataset_path = pathlib.Path("/scratch/charleshong/dla-dataset/output_dir_mapping_driven_hw_search_artifact/gd_results_resnet50_0-2023-08-01--23-51-27-S4EF7CEOICTA2VKJ.csv")
-    # dataset_path = pathlib.Path("/scratch/charleshong/dla-dataset/output_dir_mapping_driven_hw_search_artifact_2/gd_results_resnet50_0-2023-08-04--12-04-16-YOBALT6QVE5QT0YY.csv")
-    # # dataset_path = pathlib.Path("/scratch/charleshong/dla-dataset/data/gemmini_allnets_dummyarch_1000map_4_10_23/firesim_results.csv")
-    # # find_best_bandwidths(output_dir, arch_name, dataset_path)
-    # # eval_layers(output_dir, arch_name, dataset_path)
-    # eval_auto_tile(output_dir, arch_name, dataset_path, workload)
