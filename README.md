@@ -15,6 +15,13 @@ For more details, please refer to:
 ```
 
 ## Installation
+
+(modified by Zhehai and Anish)
+
+`conda create --name dosa python=3.10`
+
+`conda activate dosa`
+
 Requires `python>=3.10.0`.
 
 To install Python dependencies:
