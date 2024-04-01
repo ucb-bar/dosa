@@ -65,7 +65,7 @@ class LatencyModel():
         mlps = []
         hidden_layer_sizes = (256, 512, 2048, 2048, 512, 256, 64)
         # hidden_layer_sizes = (256, 1024, 256)
-        # hidden_layer_sizes = (32, 16)
+        # hidden_layer_sizes = (16)
         # hidden_layer_sizes = (512, 2048, 2048, 512, 128)
         input_size = len(self.internal_relevant_idxs)+11+3
         if self.with_roofline:
@@ -439,20 +439,20 @@ class LatencyModel():
             if num_worst_points > 0:
                 col_loss_no_red = loss_fn_no_red(y_test[:,col], y_pred[:,col])
                 col_worst_losses, col_worst_idxs = col_loss_no_red.topk(num_worst_points)
-                logger.info("Col %s worst points idxs: %s", y_keys[col], col_worst_idxs)
-                logger.info("Col %s worst points losses: %s", y_keys[col], col_worst_losses)
-                logger.info("Col %s worst points mapping-vals: %s", y_keys[col], mapping_test[col_worst_idxs])
-                logger.info("Col %s worst points mapping-vals (denormed): %s", y_keys[col], test_data.denorm("mapping", all_mapping_test[col_worst_idxs]))
-                logger.info("Col %s worst points access-vals: %s", y_keys[col], access_test[col_worst_idxs])
-                logger.info("Col %s worst points access-vals (denormed): %s", y_keys[col], access_test_denormed[col_worst_idxs])
-                logger.info("Col %s worst points Y-vals: %s", y_keys[col], y_test[:,col][col_worst_idxs])
-                logger.info("Col %s worst points Y-vals (denormed): %s", y_keys[col], y_test_denormed[:,col][col_worst_idxs])
-                logger.info("Col %s worst points Y-preds: %s", y_keys[col], y_pred[:,col][col_worst_idxs])
-                logger.info("Col %s worst points Y-preds (denormed): %s", y_keys[col], test_data.denorm(self.target_key, y_pred)[:,col][col_worst_idxs])
-                if mask:
-                    logger.info("Col %s worst points data: %s", y_keys[col], test_data.df.iloc[mask].iloc[pytorch_util.to_numpy(col_worst_idxs)].to_string())
-                else:
-                    logger.info("Col %s worst points data: %s", y_keys[col], test_data.df.iloc[pytorch_util.to_numpy(col_worst_idxs)].to_string())
+                # logger.info("Col %s worst points idxs: %s", y_keys[col], col_worst_idxs)
+                # logger.info("Col %s worst points losses: %s", y_keys[col], col_worst_losses)
+                # logger.info("Col %s worst points mapping-vals: %s", y_keys[col], mapping_test[col_worst_idxs])
+                # logger.info("Col %s worst points mapping-vals (denormed): %s", y_keys[col], test_data.denorm("mapping", all_mapping_test[col_worst_idxs]))
+                # logger.info("Col %s worst points access-vals: %s", y_keys[col], access_test[col_worst_idxs])
+                # logger.info("Col %s worst points access-vals (denormed): %s", y_keys[col], access_test_denormed[col_worst_idxs])
+                # logger.info("Col %s worst points Y-vals: %s", y_keys[col], y_test[:,col][col_worst_idxs])
+                # logger.info("Col %s worst points Y-vals (denormed): %s", y_keys[col], y_test_denormed[:,col][col_worst_idxs])
+                # logger.info("Col %s worst points Y-preds: %s", y_keys[col], y_pred[:,col][col_worst_idxs])
+                # logger.info("Col %s worst points Y-preds (denormed): %s", y_keys[col], test_data.denorm(self.target_key, y_pred)[:,col][col_worst_idxs])
+                # if mask:
+                #     logger.info("Col %s worst points data: %s", y_keys[col], test_data.df.iloc[mask].iloc[pytorch_util.to_numpy(col_worst_idxs)].to_string())
+                # else:
+                #     logger.info("Col %s worst points data: %s", y_keys[col], test_data.df.iloc[pytorch_util.to_numpy(col_worst_idxs)].to_string())
 
         y_test = test_data.denorm(self.target_key, pytorch_util.to_numpy(y_test))
         y_pred = test_data.denorm(self.target_key, pytorch_util.to_numpy(y_pred))

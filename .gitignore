@@ -1,4 +1,6 @@
 # dla-dataset logs
+dataset/workloads
+output_dir/gemmini*
 logs/
 *.csv
 dataset_stats_*.json

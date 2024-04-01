@@ -433,7 +433,7 @@ class MappingDrivenNetworkSearcher():
         if "dnn" in latency_predictor_type:
             with_analytical=False
             with_roofline=False
-        train_model=False
+        train_model=True
         if "dnn" in latency_predictor_type or "both" in latency_predictor_type:
             train_model=True
         # if "noroofline" in latency_predictor_type:
@@ -1676,23 +1676,23 @@ def search_network(arch_name: str, output_dir: pathlib.Path, workload: str, data
         training_configs, training_val, best_config, best_edp = bo.hw_optimize(probs, layers_counts, hw_training_size, sw_training_size, hw_trial_size, sw_trial_size, sw_test_size)
         actual_bo_results = list(training_val) + [best_edp]
 
-        logger.info("Searched mappings: %s", best_mapping)
-        logger.info("Searched HW: %s", hw_config_lst[min_idx])
-        logger.info("Searched results predicted: [%s]", ', '.join(['{:.3e}'.format(x) for x in losses_lst]))
-        logger.info("Searched results predicted best: %s", min(losses_lst))
-        logger.info("Searched results real: [%s]", ', '.join(['{:.3e}'.format(x) for x in bo_results]))
-        logger.info("Searched results real best: %s", min(bo_results))
-        logger.info("Start perf: %s", start_perf)
-        logger.info("Same HW CoSA results: [%s]", ', '.join(['{:.3e}'.format(x) for x in same_hw_cosa_results]))
-        logger.info("Same HW CoSA best result: %s", min(same_hw_cosa_results))
-        logger.info("Same HW random mapper results: [%s]", ', '.join(['{:.3e}'.format(x) for x in same_hw_random_results]))
-        logger.info("Same HW random mapper best result: %s", min(same_hw_random_results))
+        # logger.info("Searched mappings: %s", best_mapping)
+        # logger.info("Searched HW: %s", hw_config_lst[min_idx])
+        # logger.info("Searched results predicted: [%s]", ', '.join(['{:.3e}'.format(x) for x in losses_lst]))
+        # logger.info("Searched results predicted best: %s", min(losses_lst))
+        # logger.info("Searched results real: [%s]", ', '.join(['{:.3e}'.format(x) for x in bo_results]))
+        # logger.info("Searched results real best: %s", min(bo_results))
+        # logger.info("Start perf: %s", start_perf)
+        # logger.info("Same HW CoSA results: [%s]", ', '.join(['{:.3e}'.format(x) for x in same_hw_cosa_results]))
+        # logger.info("Same HW CoSA best result: %s", min(same_hw_cosa_results))
+        # logger.info("Same HW random mapper results: [%s]", ', '.join(['{:.3e}'.format(x) for x in same_hw_random_results]))
+        # logger.info("Same HW random mapper best result: %s", min(same_hw_random_results))
         # logger.info("Default HW CoSA result: %s", default_hw_cosa_result)
         # logger.info("Random HW CoSA results: [%s]", ', '.join(['{:.3e}'.format(x) for x in random_hw_cosa_results]))
         # logger.info("Random HW CoSA best result: %s", min(random_hw_cosa_results))
         # logger.info("Default HW random mapper result: %s", default_hw_random_result)
-        logger.info("Random HW random mapper results: [%s]", ', '.join(['{:.3e}'.format(x) for x in random_hw_random_results]))
-        logger.info("Random HW random mapper best result: %s", min(random_hw_random_results))
+        # logger.info("Random HW random mapper results: [%s]", ', '.join(['{:.3e}'.format(x) for x in random_hw_random_results]))
+        # logger.info("Random HW random mapper best result: %s", min(random_hw_random_results))
 
         if target == "edp":
             ylabel = "Energy-delay product (uJ * Cycles)"
