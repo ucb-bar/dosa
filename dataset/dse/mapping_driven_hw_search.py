@@ -441,7 +441,7 @@ class MappingDrivenNetworkSearcher():
 
         latency_predictor = latency_model.LatencyModel(self.output_dir, relevant_keys)
         latency_predictor.train(train_dataset, valid_data=test_dataset, gpu_id=self.gpu_id, train_model=train_model, with_analytical=with_analytical, with_roofline=with_roofline,
-                                continue_training=False, num_iters=50000, interp_points=0, with_cache=with_cache)
+                                continue_training=False, num_iters=10000, interp_points=0, with_cache=with_cache)
         latency_predictor.freeze()
         # latency_golden = latency_model.LatencyModel(self.output_dir, relevant_keys)
         # latency_golden.train(train_dataset, valid_data=test_dataset, gpu_id=self.gpu_id, train_model=False, continue_training=False, with_cache=with_cache)

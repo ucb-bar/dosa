@@ -106,7 +106,7 @@ class LatencyModel():
         params = []
         for mlp in mlps:
             params += list(mlp.parameters())
-        optimizer = torch.optim.Adam(params, lr=1e-5)
+        optimizer = torch.optim.Adam(params, lr=1e-5, weight_decay=1e-5)
         self.optimizer = optimizer
         # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1000, gamma=0.8)
     
@@ -168,23 +168,23 @@ class LatencyModel():
         rooflines = self.gen_rooflines(arch_train, mapping_train, access_train)
         self.roofline_max = rooflines.max()
 
-        try:
-            for i, mlp in enumerate(mlps):
-                mlp.load_state_dict(torch.load(mlp_paths[i]))
-                logger.info("Loaded existing MLP from %s", mlp_paths[i])
-            # optimizer.load_state_dict(torch.load(opt_path))
-            if not continue_training:
-                return
-            self.unfreeze()
-        except:
-            print(traceback.format_exc())
-            pass
+        # try:
+        #     for i, mlp in enumerate(mlps):
+        #         mlp.load_state_dict(torch.load(mlp_paths[i]))
+        #         logger.info("Loaded existing MLP from %s", mlp_paths[i])
+        #     # optimizer.load_state_dict(torch.load(opt_path))
+        #     if not continue_training:
+        #         return
+        #     self.unfreeze()
+        # except:
+        #     print(traceback.format_exc())
+        #     pass
 
-        for mlp_path in mlp_paths:
-            backup_mlp_path = mlp_path.parent / (mlp_path.name + ".bak")
-            if mlp_path.exists():
-                logger.info("Found existing MLP at %s, copying to %s", mlp_path, backup_mlp_path)
-                shutil.copy(mlp_path, backup_mlp_path)
+        # for mlp_path in mlp_paths:
+        #     backup_mlp_path = mlp_path.parent / (mlp_path.name + ".bak")
+        #     if mlp_path.exists():
+        #         logger.info("Found existing MLP at %s, copying to %s", mlp_path, backup_mlp_path)
+        #         shutil.copy(mlp_path, backup_mlp_path)
 
         train_dataset = pytorch_util.X_y_dataset(arch_train, mapping_train, prob_train, y_train, access_train)
         batch_size = 100000
