@@ -105,7 +105,7 @@ class LatencyModel():
         params = []
         for mlp in mlps:
             params += list(mlp.parameters())
-        optimizer = torch.optim.Adam(params, lr=1e-5, weight_decay=1e-5)
+        optimizer = torch.optim.Adam(params, lr=1e-5)
         self.optimizer = optimizer
         # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1000, gamma=0.8)
     
