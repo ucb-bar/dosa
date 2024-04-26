@@ -81,19 +81,19 @@ class EnergyModel():
 
         y_keys = ["target.energy"]
 
-        # X_train = train_data.df[x_keys].to_numpy()
-        # X_train = train_data.denorm("arch", X_train).numpy()
-        # access_train = train_data.df[access_keys].to_numpy()
+        X_train = train_data.df[x_keys].to_numpy()
+        X_train = train_data.denorm("arch", X_train).numpy()
+        access_train = train_data.df[access_keys].to_numpy()
         y_train = train_data.df[y_keys].to_numpy()
         y_train = train_data.denorm("target.energy", y_train).numpy()
         self.energy_max = y_train.max() / 100
-        # y_train = y_train / self.energy_max
-        # X_train = pytorch_util.from_numpy(X_train)
-        # access_train = pytorch_util.from_numpy(access_train)
-        # y_train = pytorch_util.from_numpy(y_train)
-        # # X_train = torch.cat((X_train, torch.square(X_train)), dim=1)
-        # self.arch_max = X_train.max(dim=0)[0] / 100
-        # X_train = X_train / self.arch_max
+        y_train = y_train / self.energy_max
+        X_train = pytorch_util.from_numpy(X_train)
+        access_train = pytorch_util.from_numpy(access_train)
+        y_train = pytorch_util.from_numpy(y_train)
+        X_train = torch.cat((X_train, torch.square(X_train)), dim=1)
+        self.arch_max = X_train.max(dim=0)[0] / 100
+        X_train = X_train / self.arch_max
 
         logger.debug("energy_max: %s", self.energy_max)
         # logger.debug("arch_max: %s", self.arch_max)
@@ -166,7 +166,7 @@ class EnergyModel():
         mapping_keys = utils.keys_by_type(train_data.df, "mapping")
         relevant_keys = []
         for idx, key in enumerate(mapping_keys):
-            if stats[key+"_std"] != 0:
+            if self.stats[key+"_std"] != 0:
                 relevant_keys.append(key)
 
         logger.info("Training prediction of target(s) %s with inputs %s for %s iterations, %s data points",
