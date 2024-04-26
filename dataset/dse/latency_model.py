@@ -63,8 +63,7 @@ class LatencyModel():
         opt_path = pathlib.Path(self.output_dir).resolve() / f"mlp_opt_{save_str}.pt"
 
         mlps = []
-        hidden_layer_sizes = (256, 512, 2048, 2048, 512, 256, 64)
-        # hidden_layer_sizes = (256, 1024, 256)
+        hidden_layer_sizes = (256, 512, 2048, 4096, 4096, 2048, 512, 256)        # hidden_layer_sizes = (256, 1024, 256)
         # hidden_layer_sizes = (16)
         # hidden_layer_sizes = (512, 2048, 2048, 512, 128)
         input_size = len(self.internal_relevant_idxs)+11+3
