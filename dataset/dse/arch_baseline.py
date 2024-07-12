@@ -123,7 +123,7 @@ def main(output_dir, workload):
     layer_count = get_layer_count(workload_path, layers)
     logger.info("Layer count: %s", layer_count)
 
-    # get result from prev fig5.sh run
+    # get result from prev fig7.sh run
     try:
         with open(output_dir / f"gd_best_result_{workload}.txt", "r") as f:
             line = f.readline()
