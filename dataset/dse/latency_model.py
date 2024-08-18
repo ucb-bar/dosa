@@ -170,7 +170,7 @@ class LatencyModel():
 
         try:
             for i, mlp in enumerate(mlps):
-                mlp.load_state_dict(torch.load(mlp_paths[i]))
+                mlp.load_state_dict(torch.load(mlp_paths[i], map_location=pytorch_util.device))
                 logger.info("Loaded existing MLP from %s", mlp_paths[i])
             # optimizer.load_state_dict(torch.load(opt_path))
             if not continue_training:
