@@ -143,7 +143,7 @@ def main(output_dir, workload):
             if arch_name == "eyeriss":
                 paths = [ # Eyeriss
                     DATASET_ROOT_PATH.parent / "accelergy-timeloop-infrastructure" / "src" / "timeloop" / "configs" / "mapper" / "eyeriss-256-split-accelergy-arg.yaml",
-                    DATASET_ROOT_PATH.parent / "accelergy-timeloop-infrastructure" / "src" / "timeloop" / "configs" / "mapper" / "eyeriss-256-split-problem.yaml",
+                    DATASET_ROOT_PATH / "hw" / "eyeriss" / "mapspace" / "eyeriss-256-split-problem-modified.yaml",
                     prob.path
                 ]
             elif "nvdla" in arch_name:
