@@ -50,7 +50,7 @@ pip3 install .
 cd ../cacti
 make
 cd ..
-mv cacti ~/.local/bin/
+mv cacti ~/.local/bin
 cd accelergy-cacti-plug-in
 pip3 install .
 cd ../accelergy-aladdin-plug-in
@@ -88,7 +88,7 @@ In the same environment, run the following script, selecting one workload:
 ./fig7.sh (unet|resnet50|bert|retinanet)
 ```
 
-This will take several hours to run, per workload, and generate a plot at “output_dir/network_searcher_<workload>*log*<timestamp >.png”. This corresponds to the plot to Figure 5, but over one run rather than averaged over 5. Results should fall within or close to the confidence bounds of the original plot.
+This will take several hours to run, per workload, and generate a plot at “output_dir/network_searcher_<workload>log<timestamp >.png”. This corresponds to the plot to Figure 5, but over one run rather than averaged over 5. Results should fall within or close to the confidence bounds of the original plot.
 
 ### Figure 8: Comparison to hand-tuned accelerators
 Only after running `fig7.sh` for the corresponding workload, run:
