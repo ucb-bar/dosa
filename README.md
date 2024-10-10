@@ -3,6 +3,7 @@ In this work, we build a differentiable analytical model to enable mapping-first
 
 For more details, please refer to:
 - [MICRO'23 DOSA Paper](https://people.eecs.berkeley.edu/~ysshao/assets/papers/dosa-micro2023.pdf)
+- [MICRO'23 DOSA Slides](https://people.eecs.berkeley.edu/~ysshao/assets/talks/dosa2023-micro-slides.pdf)
 
 If used for research, please cite DOSA by the following publication:
 
@@ -21,7 +22,7 @@ If used for research, please cite DOSA by the following publication:
 Requires `python=3.10`.
 
 ### DOSA
-On a user machine with Python 3.10, clone the archived DOSA code:
+On a user machine with Python 3.10, clone DOSA:
 ```
 git clone https://github.com/ucb-bar/dosa.git
 ```
@@ -50,7 +51,7 @@ pip3 install .
 cd ../cacti
 make
 cd ..
-mv cacti ~/.local/bin/
+mv cacti ~/.local/bin
 cd accelergy-cacti-plug-in
 pip3 install .
 cd ../accelergy-aladdin-plug-in
@@ -88,7 +89,7 @@ In the same environment, run the following script, selecting one workload:
 ./fig7.sh (unet|resnet50|bert|retinanet)
 ```
 
-This will take several hours to run, per workload, and generate a plot at “output_dir/network_searcher_<workload>*log*<timestamp >.png”. This corresponds to the plot to Figure 5, but over one run rather than averaged over 5. Results should fall within or close to the confidence bounds of the original plot.
+This will take several hours to run, per workload, and generate a plot at “output_dir/network_searcher_<workload>log<timestamp >.png”. This corresponds to the plot to Figure 5, but over one run rather than averaged over 5. Results should fall within or close to the confidence bounds of the original plot.
 
 ### Figure 8: Comparison to hand-tuned accelerators
 Only after running `fig7.sh` for the corresponding workload, run:
@@ -107,21 +108,27 @@ Run the following script:
 This will reproduce the plots in Figures 10 and 11 under "output_dir/predict_<predictor>_<dataset>.png". These plots show the prediction accuracy of the three different predictors on the two datasets of Gemmini-RTL latency, which were previously generated using FireSim.
 
 ## FireSim-Based Experiments
-First, follow the instructions on the [FireSim website](https://docs.fires.im/en/1.18.0/Getting-Started-Guides/AWS-EC2-F1-Getting-Started/) to create an EC2 manager instance. Complete the steps in the “AWS EC2 F1 Getting Started Guide”. Once you have completed up to and including "Setting up your Manager Instance / Key setup, Part 2" in the FireSim docs, you should have a manager instance set up, with an IP address and key. Use ssh or mosh to log in to the instance. 
+First, follow the instructions on the [FireSim website](https://docs.fires.im/en/1.20.1/Getting-Started-Guides/AWS-EC2-F1-Getting-Started/) to create an EC2 manager instance. Complete the steps in the “AWS EC2 F1 Getting Started Guide”. Once you have completed up to and including "Setting up your Manager Instance / Key setup, Part 2" in the FireSim docs, you should have a manager instance set up, with an IP address and key. Use ssh or mosh to log in to the instance. 
 
 Next, in "/home/centos", clone the archived FireSim repository.
 ```
-git clone https://github.com/firesim/firesim.git
+git clone https://github.com/charleshong3/firesim-dosa.git
 ```
 
 Run the following, which will initialize dependencies and set up FireSim and Chipyard:
 ```
-cd firesim
-git checkout dosa
+cd firesim-dosa
 ./build-setup.sh
 sudo yum install autoconf
 source sourceme-f1-manager.sh
 firesim managerinit --platform f1
+```
+> If encountering errors with mirror.centos.org, run below code before re-executing ./build-setup.sh.
+
+```bash
+sudo sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo
+sudo sed -i s/^#.*baseurl=http/baseurl=http/g /etc/yum.repos.d/*.repo
+sudo sed -i s/^mirrorlist=http/#mirrorlist=http/g /etc/yum.repos.d/*.repo
 ```
 
 After sourcing, complete the steps in "Setting up your Manager Instance / Completing Setup Using the Manager".
@@ -136,7 +143,6 @@ Now, **move to the AWS EC2 instance** set up with the FireSim fork. To run the f
 cd ~/firesim/target-design/chipyard/generators/gemmini/software/gemmini-rocc-tests
 ./artifact_script.sh (analytical|both|dnn) (unet|resnet50|bert|retinanet)
 ```
-
 The first argument to `artifact_script.sh` indicates which of the three latency predictors from the previous section should be used. The second argument indicates the target workload. This script launches FireSim automatically and should take a few minutes to run. Depending on the target workload, FireSim will generate either one or two directories under "deploy/results-workload", for matrix multiplication and/or convolutional layers. Pass the previously selected options, along with the directories (**($result_dir_1)** and potentially **($result_dir_2)**) to the parsing script.
 ```
 cd ~/firesim/target-design/chipyard/generators/gemmini/software/gemmini-rocc-tests
